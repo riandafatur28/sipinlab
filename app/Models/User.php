@@ -16,11 +16,35 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'role', // mahasiswa, dosen, ketua_lab, teknisi
-    ];
+    'name',
+    'email',
+    'password',
+    'role',
+    'phone',
+    'google_id',
+    'avatar',
+    'google_token',
+    'google_refresh_token',
+    'google_connected_at',
+];
+
+/**
+ * Check if user is from Polije domain
+ */
+public function isPolijeDomain(): bool
+{
+    $allowedDomains = explode(',', env('GOOGLE_ALLOWED_DOMAINS', 'student.polije.ac.id,polije.ac.id'));
+    $domain = substr(strrchr($this->email, "@"), 1);
+    return in_array($domain, $allowedDomains);
+}
+
+/**
+ * Check if user logged in via Google
+ */
+public function isGoogleUser(): bool
+{
+    return !empty($this->google_id);
+}
 
     /**
      * The attributes that should be hidden for serialization.
