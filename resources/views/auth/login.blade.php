@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Polije</title>
-    @vite('resources/css/app.css')
+
+    {{-- ✅ GUNAKAN CDN UNTUK SEMENTARA --}}
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    {{-- Hapus atau comment baris ini: --}}
+    {{-- @vite('resources/css/app.css') --}}
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-md">

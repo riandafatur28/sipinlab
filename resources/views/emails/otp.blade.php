@@ -33,7 +33,7 @@
     <div class="container">
         <div class="header">
             <h1>🔐 Politeknik Negeri Jember</h1>
-            <p>Sistem Informasi Akademik</p>
+            <p>Sistem Peminjaman Laboratorium PSDKU Nganjuk</p>
         </div>
 
         <div class="content">
