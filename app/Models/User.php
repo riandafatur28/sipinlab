@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 
 class User extends Authenticatable
 {
@@ -49,17 +51,18 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        
+
         // Role & Identity
         'role',
-        'nim',           // ✅ Nomor Induk Mahasiswa (untuk mahasiswa)
-        'nip',           // ✅ Nomor Induk Pegawai (untuk dosen)
-        'golongan',      // ✅ Golongan praktikum (A, B, C)
-        'prodi',         // ✅ Program Studi (default: Teknik Informatika)
-        
+        'is_kalab',
+        'nim',
+        'nip',
+        'golongan',
+        'prodi',
+
         // Contact
-        'phone',         // ✅ No. Telepon / WhatsApp
-        
+        'phone',
+
         // Google Auth fields
         'google_id',
         'avatar',
@@ -89,47 +92,33 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'google_connected_at' => 'datetime',
+        'is_kalab' => 'boolean',
     ];
 
     // ========================================================================
     // RELATIONSHIPS
     // ========================================================================
 
-    /**
-     * Get all bookings made by this user.
-     */
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class, 'user_id');
     }
 
-    /**
-     * Get bookings approved by this user as Dosen.
-     */
     public function approvedBookingsAsDosen(): HasMany
     {
         return $this->hasMany(Booking::class, 'approved_by_dosen');
     }
 
-    /**
-     * Get bookings approved by this user as Teknisi.
-     */
     public function approvedBookingsAsTeknisi(): HasMany
     {
         return $this->hasMany(Booking::class, 'approved_by_teknisi');
     }
 
-    /**
-     * Get bookings approved by this user as Ka Lab.
-     */
     public function approvedBookingsAsKalab(): HasMany
     {
         return $this->hasMany(Booking::class, 'approved_by_kalab');
     }
 
-    /**
-     * Get bookings where this user is supervisor.
-     */
     public function supervisedBookings(): HasMany
     {
         return $this->hasMany(Booking::class, 'supervisor_id');
@@ -139,18 +128,12 @@ class User extends Authenticatable
     // ROLE CHECKERS
     // ========================================================================
 
-    /**
-     * Check if user is mahasiswa.
-     */
     public function isMahasiswa(): bool
     {
         return $this->role === 'mahasiswa' ||
                str_ends_with($this->email, '@student.polije.ac.id');
     }
 
-    /**
-     * Check if user is dosen.
-     */
     public function isDosen(): bool
     {
         return $this->role === 'dosen' ||
@@ -158,32 +141,33 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is ketua lab.
+     * Check if user is currently active Kalab.
+     * Hanya dosen dengan flag is_kalab = true.
      */
-    public function isKetuaLab(): bool
+    public function isKalab(): bool
     {
-        return $this->role === 'ketua_lab';
+        return $this->isDosen() && $this->is_kalab;
     }
 
     /**
-     * Check if user is teknisi.
+     * Check if user is Ketua Lab (Kalab).
+     * Support backward compatibility dengan role 'ketua_lab'.
      */
+    public function isKetuaLab(): bool
+    {
+        return $this->role === 'ketua_lab' || $this->isKalab();
+    }
+
     public function isTeknisi(): bool
     {
         return $this->role === 'teknisi';
     }
 
-    /**
-     * Check if user is admin.
-     */
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
     }
 
-    /**
-     * Check if user is staff (dosen, ketua lab, atau teknisi).
-     */
     public function isStaff(): bool
     {
         return in_array($this->role, ['dosen', 'ketua_lab', 'teknisi', 'admin']) ||
@@ -194,9 +178,6 @@ class User extends Authenticatable
     // IDENTITY & CONTACT HELPERS
     // ========================================================================
 
-    /**
-     * Get user identifier (NIM for mahasiswa, NIP for dosen).
-     */
     public function getIdentifierAttribute(): ?string
     {
         if ($this->isMahasiswa()) {
@@ -208,15 +189,11 @@ class User extends Authenticatable
         return null;
     }
 
-    /**
-     * Get formatted phone number.
-     */
     public function getFormattedPhoneAttribute(): ?string
     {
         if (!$this->phone) {
             return null;
         }
-        // Format Indonesian phone number
         $phone = preg_replace('/[^0-9]/', '', $this->phone);
         if (strlen($phone) >= 11 && substr($phone, 0, 2) === '08') {
             return '+62' . substr($phone, 1);
@@ -224,25 +201,20 @@ class User extends Authenticatable
         return $this->phone;
     }
 
-    /**
-     * Get user display name with role badge.
-     */
     public function getDisplayNameAttribute(): string
     {
-        $badge = match($this->role) {
-            'mahasiswa' => '🎓',
-            'dosen' => '👨‍🏫',
-            'ketua_lab' => '👔',
-            'teknisi' => '🔧',
-            'admin' => '⚙️',
+        $badge = match(true) {
+            $this->isKalab() => '👔',
+            $this->role === 'mahasiswa' => '🎓',
+            $this->role === 'dosen' => '👨‍🏫',
+            $this->role === 'ketua_lab' => '👔',
+            $this->role === 'teknisi' => '🔧',
+            $this->role === 'admin' => '⚙️',
             default => '',
         };
         return "{$badge} {$this->name}";
     }
 
-    /**
-     * Get user initial for avatar.
-     */
     public function getInitialAttribute(): string
     {
         return strtoupper(substr($this->name, 0, 1));
@@ -252,9 +224,6 @@ class User extends Authenticatable
     // GOOGLE AUTH HELPERS
     // ========================================================================
 
-    /**
-     * Check if user is from Polije domain.
-     */
     public function isPolijeDomain(): bool
     {
         $allowedDomains = explode(',', env('GOOGLE_ALLOWED_DOMAINS', 'student.polije.ac.id,polije.ac.id'));
@@ -262,17 +231,11 @@ class User extends Authenticatable
         return in_array($domain, $allowedDomains);
     }
 
-    /**
-     * Check if user logged in via Google.
-     */
     public function isGoogleUser(): bool
     {
         return !empty($this->google_id);
     }
 
-    /**
-     * Check if user has connected Google account.
-     */
     public function hasGoogleConnected(): bool
     {
         return $this->isGoogleUser() && !empty($this->google_refresh_token);
@@ -282,63 +245,53 @@ class User extends Authenticatable
     // PERMISSION & CAPABILITY CHECKERS
     // ========================================================================
 
-    /**
-     * Check if user can create booking.
-     */
     public function canCreateBooking(): bool
     {
         return in_array($this->role, ['mahasiswa', 'dosen', 'teknisi', 'ketua_lab', 'admin']);
     }
 
-    /**
-     * Check if user can approve bookings.
-     */
     public function canApproveBookings(): bool
     {
-        return in_array($this->role, ['dosen', 'teknisi', 'ketua_lab', 'admin']);
+        return $this->isAdmin() ||
+               $this->isTeknisi() ||
+               $this->isKetuaLab() ||
+               $this->isKalab();
     }
 
-    /**
-     * Check if user can view all bookings.
-     */
     public function canViewAllBookings(): bool
     {
-        return in_array($this->role, ['teknisi', 'ketua_lab', 'admin']);
+        return $this->isAdmin() ||
+               $this->isTeknisi() ||
+               $this->isKetuaLab() ||
+               $this->isKalab();
     }
 
-    /**
-     * Check if user can manage labs.
-     */
     public function canManageLabs(): bool
     {
         return $this->role === 'admin';
     }
 
-    /**
-     * Check if user can manage users.
-     */
     public function canManageUsers(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function canApproveAsKalab(): bool
+    {
+        return $this->isKalab() || $this->role === 'ketua_lab' || $this->isAdmin();
     }
 
     // ========================================================================
     // SCOPES FOR QUERIES
     // ========================================================================
 
-    /**
-     * Scope a query to only include mahasiswa.
-     */
-    public function scopeMahasiswa($query)
+    public function scopeMahasiswa(Builder $query): Builder
     {
         return $query->where('role', 'mahasiswa')
             ->orWhere('email', 'like', '%@student.polije.ac.id');
     }
 
-    /**
-     * Scope a query to only include dosen.
-     */
-    public function scopeDosen($query)
+    public function scopeDosen(Builder $query): Builder
     {
         return $query->where('role', 'dosen')
             ->orWhere(function($q) {
@@ -347,19 +300,19 @@ class User extends Authenticatable
             });
     }
 
-    /**
-     * Scope a query to only include staff.
-     */
-    public function scopeStaff($query)
+    public function scopeKalab(Builder $query): Builder
+    {
+        return $query->where('role', 'dosen')
+                     ->where('is_kalab', true);
+    }
+
+    public function scopeStaff(Builder $query): Builder
     {
         return $query->whereIn('role', ['dosen', 'ketua_lab', 'teknisi', 'admin'])
             ->orWhere('email', 'like', '%@polije.ac.id');
     }
 
-    /**
-     * Scope a query to search users by name, email, NIM, or NIP.
-     */
-    public function scopeSearch($query, string $keyword)
+    public function scopeSearch(Builder $query, string $keyword): Builder
     {
         return $query->where(function($q) use ($keyword) {
             $q->where('name', 'like', "%{$keyword}%")
@@ -370,30 +323,62 @@ class User extends Authenticatable
     }
 
     // ========================================================================
+    // STATIC HELPERS
+    // ========================================================================
+
+    public static function getActiveKalab(): ?self
+    {
+        return self::kalab()->first();
+    }
+
+    public static function transferKalab(int $newKalabUserId): bool
+    {
+        $newKalab = self::find($newKalabUserId);
+
+        if (!$newKalab || !$newKalab->isDosen()) {
+            return false;
+        }
+
+        // Copot kalab lama
+        self::where('is_kalab', true)->update(['is_kalab' => false]);
+
+        // Angkat kalab baru
+        $newKalab->update(['is_kalab' => true]);
+
+        return true;
+    }
+
+    // ========================================================================
     // BOOT METHOD
     // ========================================================================
 
-    /**
-     * Boot the model and attach event listeners.
-     */
     protected static function boot(): void
     {
         parent::boot();
 
-        // Auto-set default prodi for new users
         static::creating(function ($user) {
             if (!$user->prodi && $user->isMahasiswa()) {
                 $user->prodi = 'Teknik Informatika';
             }
+
+            if (!$user->is_kalab) {
+                $user->is_kalab = false;
+            }
         });
 
-        // Log user creation for audit
+        static::updating(function ($user) {
+            if ($user->isDirty('role') && $user->role !== 'dosen' && $user->is_kalab) {
+                $user->is_kalab = false;
+            }
+        });
+
         static::created(function ($user) {
-            \Log::info('User created', [
+            Log::info('User created', [
                 'user_id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'is_kalab' => $user->is_kalab,
             ]);
         });
     }
