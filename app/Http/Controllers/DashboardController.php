@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Models\Lab;
 use App\Models\Booking;
@@ -13,12 +15,28 @@ use App\Models\User;
 class DashboardController extends Controller
 {
     /**
-     * Main dashboard router based on user role
+     * Main dashboard router based on user role AND view mode
      */
     public function index()
     {
         $user = Auth::user();
 
+        // ✅ PERUBAHAN UTAMA: Kalab sekarang diarahkan ke "Kelola Booking" (booking.index)
+        if ($user->isKalab()) {
+            // Jika ingin ada toggle view, bisa pakai logika ini (Opsional):
+            // $viewMode = session('dashboard_view_mode', 'kalab');
+            //
+            // if ($viewMode === 'schedule') {
+            //     return redirect()->route('dashboard.staff'); // Redirect ke jadwal/slot
+            // } else {
+            //     return redirect()->route('booking.index'); // Default redirect ke daftar booking
+            // }
+
+            // Arahkan langsung ke halaman manajemen booking (Daftar Peminjaman)
+            return redirect()->route('booking.index');
+        }
+
+        // User lain: redirect berdasarkan role biasa
         return match($user->role) {
             'mahasiswa' => redirect()->route('dashboard.mahasiswa'),
             'dosen', 'ketua_lab', 'teknisi', 'staff', 'admin' => redirect()->route('dashboard.staff'),
@@ -35,48 +53,98 @@ class DashboardController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        $selectedDay = request('day');
-        return $this->getDashboardData('dashboard.mahasiswa', $selectedDay);
+        $selectedDate = request('date');
+        return $this->getDashboardData('dashboard.mahasiswa', $selectedDate, false);
     }
 
     /**
-     * Dashboard for Staff (Dosen, Teknisi, Ka Lab, Admin)
+     * Dashboard for Staff (Dosen, Teknisi, Ka Lab, Admin) - Untuk Tampilan Jadwal
      */
     public function staff()
     {
+        $user = Auth::user();
         $allowedRoles = ['dosen', 'ketua_lab', 'teknisi', 'staff', 'admin'];
-        if (!in_array(Auth::user()->role, $allowedRoles)) {
+
+        if (!in_array($user->role, $allowedRoles) && !$user->isKalab()) {
             abort(403, 'Unauthorized');
         }
 
-        $selectedDay = request('day');
-        return $this->getDashboardData('dashboard.staff', $selectedDay);
+        // ✅ Detect view mode untuk Kalab (Jika Kalab ingin melihat jadwal slot saja tanpa approve)
+        $isKalabView = $user->isKalab() && session('dashboard_view_mode', 'kalab') === 'kalab';
+        $selectedDate = request('date');
+
+        return $this->getDashboardData('dashboard.staff', $selectedDate, $isKalabView);
     }
 
     /**
-     * Get dashboard data from database
-     * ✅ FIXED: Schedule updates when booking is created/approved
+     * ✅ NEW: Toggle view mode untuk Kalab (AJAX/Form)
      */
-    private function getDashboardData($viewName, $selectedDay = null)
+    public function toggleViewMode(Request $request)
     {
-        // ✅ Set timezone & locale
+        $user = Auth::user();
+
+        if (!$user->isKalab()) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            abort(403, 'Unauthorized');
+        }
+
+        $request->validate([
+            'mode' => 'required|in:dosen,kalab,schedule',
+        ]);
+
+        // Simpan preferensi view Kalab
+        session(['dashboard_view_mode' => $request->mode]);
+
+        Log::info('Kalab view mode changed', [
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'new_mode' => $request->mode,
+        ]);
+
+        // Tentukan tujuan redirect berdasarkan mode
+        $redirectRoute = match($request->mode) {
+            'schedule' => route('dashboard.staff'), // Jadwal Slot (Kosong/Penuh)
+            'kalab' => route('booking.index'),      // Daftar Booking (List Request)
+            default => route('booking.index')
+        };
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'mode' => $request->mode,
+                'redirect' => $redirectRoute,
+                'message' => 'Pengaturan tampilan berhasil diubah',
+            ]);
+        }
+
+        return redirect($redirectRoute)
+            ->with('success', 'Pengaturan tampilan berhasil diubah');
+    }
+
+    /**
+     * ✅ Get dashboard data with Kalab view mode awareness
+     */
+    private function getDashboardData($viewName, $selectedDate = null, $isKalabView = false)
+    {
         config(['app.timezone' => 'Asia/Jakarta']);
         date_default_timezone_set('Asia/Jakarta');
         Carbon::setLocale('id');
-        
+
         $currentTime = Carbon::now('Asia/Jakarta');
         $today = $currentTime->toDateString();
-        
-        // ✅ VARIABEL 1: Untuk realtime clock (SELALU hari ini)
-        $realtimeDayName = $currentTime->isoFormat('dddd');
-        
-        // ✅ VARIABEL 2: Untuk filter jadwal (bisa dipilih user)
-        $scheduleDayName = $selectedDay ?? $realtimeDayName;
-
-        // ✅ Get today's name for status logic
         $todayName = $currentTime->isoFormat('dddd');
 
-        // ✅ LABS dari database
+        $realtimeDayName = $todayName;
+        $scheduleDate = $selectedDate ? Carbon::parse($selectedDate)->toDateString() : $today;
+        $scheduleDayName = Carbon::parse($scheduleDate)->isoFormat('dddd');
+
+        // ✅ KALAB VIEW: Tampilkan semua booking, Dosen biasa: hanya confirmed
+        $bookingStatusFilter = $isKalabView
+            ? ['pending', 'approved_dosen', 'approved_teknisi', 'confirmed']
+            : ['confirmed'];
+
         $labs = Lab::where('status', 'active')
             ->orderBy('name')
             ->get()
@@ -109,14 +177,16 @@ class DashboardController extends Controller
         foreach ($labs as $lab) {
             $sessionsData = [];
             foreach ($sessions as $session) {
-                // ✅ Gunakan $scheduleDayName untuk query jadwal
                 $status = $this->getSessionStatusFromDb(
-                    $lab, 
-                    $session['start'], 
-                    $session['end'], 
+                    $lab,
+                    $session['start'],
+                    $session['end'],
+                    $scheduleDate,
                     $scheduleDayName,
                     $today,
-                    $todayName
+                    $todayName,
+                    $isKalabView,
+                    $bookingStatusFilter
                 );
 
                 $sessionsData[] = [
@@ -129,31 +199,48 @@ class DashboardController extends Controller
                     'status_color' => $status['color'],
                     'is_break' => $session['is_break'] ?? false,
                     'booking_info' => $status['info'] ?? null,
+                    'booking_id' => $status['booking_id'] ?? null,
+                    'is_expired' => $status['is_expired'] ?? false,
+                    'is_kalab_view' => $isKalabView,
                 ];
             }
             $scheduleData[$lab] = $sessionsData;
         }
 
-        // ✅ Kirim data ke view
+        // ✅ Stats untuk Kalab view
+        $stats = [];
+        if ($isKalabView) {
+            $stats = [
+                'pending_count' => Booking::where('status', 'pending')->count(),
+                'approved_dosen_count' => Booking::where('status', 'approved_dosen')->count(),
+                'approved_teknisi_count' => Booking::where('status', 'approved_teknisi')->count(),
+                'confirmed_count' => Booking::where('status', 'confirmed')->count(),
+            ];
+        }
+
         return view($viewName, compact(
-            'scheduleData', 
-            'currentTime', 
-            'labs', 
+            'scheduleData',
+            'currentTime',
+            'labs',
             'realtimeDayName',
-            'scheduleDayName'
+            'scheduleDayName',
+            'scheduleDate',
+            'isKalabView',
+            'stats'
         ));
     }
 
     /**
-     * Get session status from database
-     * ✅ FIXED: Check bookings for selected day + all relevant statuses
+     * ✅ Get session status with Kalab view awareness
      */
-    private function getSessionStatusFromDb($labName, $startTime, $endTime, $currentDay, $today, $todayName = null)
-    {
+    private function getSessionStatusFromDb(
+        $labName, $startTime, $endTime, $scheduleDate, $scheduleDayName,
+        $today, $todayName, $isKalabView = false, $statusFilter = null
+    ) {
         $currentTime = Carbon::now('Asia/Jakarta');
         $now = $currentTime->format('H:i');
+        $isToday = ($scheduleDate === $today);
 
-        // Mapping hari Indonesia <-> Inggris
         $dayMap = [
             'Senin' => ['Senin', 'Monday'],
             'Selasa' => ['Selasa', 'Tuesday'],
@@ -163,193 +250,256 @@ class DashboardController extends Controller
             'Sabtu' => ['Sabtu', 'Saturday'],
             'Minggu' => ['Minggu', 'Sunday'],
         ];
-        
-        $possibleDays = $dayMap[$currentDay] ?? [$currentDay];
 
-        // ✅ Get class schedules for this lab and selected day
+        $possibleDays = $dayMap[$scheduleDayName] ?? [$scheduleDayName];
+
+        // ✅ 1. Check Class Schedule
         $classSchedules = ClassSchedule::where('lab_name', $labName)
             ->whereIn('day', $possibleDays)
             ->where('status', 'active')
             ->get();
 
-        // ✅ Check class schedule overlap
         foreach ($classSchedules as $schedule) {
             $dbStart = substr($schedule->start_time, 0, 5);
             $dbEnd = substr($schedule->end_time, 0, 5);
-            
+
             if ($startTime < $dbEnd && $endTime > $dbStart) {
-                // ✅ "Kuliah Berlangsung" hanya untuk hari ini + waktu sekarang
-                if ($currentDay === $todayName && $now >= $startTime && $now < $endTime) {
+                if ($isToday && $now >= $startTime && $now < $endTime) {
                     return [
                         'status' => 'proses',
-                        'label' => 'Kuliah Berlangsung',
+                        'label' => '🎓 Kuliah Berlangsung',
                         'color' => 'yellow',
-                        'info' => $schedule->course_name . ' - Gol. ' . $schedule->golongan . ' (' . ($schedule->lecturer->name ?? 'Unknown') . ')',
-                    ];
-                } else {
-                    return [
-                        'status' => 'terisi',
-                        'label' => 'Terisi - Jadwal Kuliah',
-                        'color' => 'red',
                         'info' => $schedule->course_name . ' - Gol. ' . $schedule->golongan,
-                    ];
-                }
-            }
-        }
-
-        // ✅ FIX UTAMA: Check bookings untuk HARI YANG DIPILIH, bukan hanya hari ini
-        // ✅ Konversi nama hari ke tanggal untuk query
-        $targetDate = $this->getDateFromDayName($currentDay, $today);
-        
-        // ✅ Query bookings: hanya 'confirmed' yang memblokir slot di schedule
-        $bookings = Booking::where('lab_name', $labName)
-            ->whereDate('booking_date', $targetDate)
-            ->where('status', 'confirmed')  // ✅ Hanya confirmed yang blocking
-            ->with('user')
-            ->get();
-
-        foreach ($bookings as $booking) {
-            $bStart = substr($booking->start_time ?? '', 0, 5);
-            $bEnd = substr($booking->end_time ?? '', 0, 5);
-            
-            if (empty($bStart) || empty($bEnd)) {
-                continue;
-            }
-            
-            if ($startTime < $bEnd && $endTime > $bStart) {
-                // ✅ "Proses Peminjaman" hanya untuk hari ini + waktu sekarang
-                if ($currentDay === $todayName && $now >= $startTime && $now < $endTime) {
-                    return [
-                        'status' => 'proses',
-                        'label' => 'Proses Peminjaman',
-                        'color' => 'yellow',
-                        'info' => $booking->user->name ?? 'Unknown',
+                        'is_expired' => false,
                     ];
                 }
                 return [
                     'status' => 'terisi',
-                    'label' => 'Terisi - Booking',
+                    'label' => '📚 Terisi - Jadwal Kuliah',
                     'color' => 'red',
-                    'info' => $booking->user->name ?? 'Unknown',
+                    'info' => $schedule->course_name . ' - Gol. ' . $schedule->golongan,
+                    'is_expired' => false,
                 ];
             }
         }
 
-        // ✅ Default: Tersedia atau Selesai
+        // ✅ 2. Check Bookings dengan filter sesuai view mode
+        $bookingQuery = Booking::where('lab_name', $labName)
+            ->whereDate('booking_date', $scheduleDate)
+            ->with('user');
+
+        if (!$isKalabView && !empty($statusFilter)) {
+            $bookingQuery->whereIn('status', $statusFilter);
+        }
+
+        $bookings = $bookingQuery->get();
+
+        foreach ($bookings as $booking) {
+            $bStart = substr($booking->start_time ?? '', 0, 5);
+            $bEnd = substr($booking->end_time ?? '', 0, 5);
+
+            if (empty($bStart) || empty($bEnd)) continue;
+
+            if ($startTime < $bEnd && $endTime > $bStart) {
+                $isExpired = $this->isBookingExpired($booking, $scheduleDate, $today);
+
+                if ($isExpired) {
+                    return [
+                        'status' => 'expired',
+                        'label' => '⚠️ Expired - Belum Diproses',
+                        'color' => 'gray',
+                        'info' => ($booking->user->name ?? 'Unknown') . ' (Menunggu approval)',
+                        'booking_id' => $booking->id,
+                        'is_expired' => true,
+                    ];
+                }
+
+                $statusMap = $this->getBookingStatusMap($booking, $isToday, $startTime, $endTime, $now, $isKalabView);
+
+                if ($isToday && $now >= $startTime && $now < $endTime && $booking->status === 'confirmed') {
+                    $statusMap['label'] = '🔄 Sedang Berlangsung';
+                    $statusMap['color'] = 'yellow';
+                    $statusMap['status'] = 'proses';
+                }
+
+                return [
+                    'status' => $statusMap['status'],
+                    'label' => $statusMap['label'],
+                    'color' => $statusMap['color'],
+                    'info' => $statusMap['info'],
+                    'booking_id' => $booking->id,
+                    'is_expired' => false,
+                ];
+            }
+        }
+
+        // ✅ 3. Default: Tersedia atau Selesai
         if ($now >= $startTime && $now < $endTime) {
             return [
                 'status' => 'tersedia',
-                'label' => 'Tersedia',
+                'label' => '✅ Tersedia',
                 'color' => 'green',
                 'info' => null,
+                'is_expired' => false,
             ];
         } elseif ($now < $startTime) {
             return [
                 'status' => 'tersedia',
-                'label' => 'Tersedia',
+                'label' => '✅ Tersedia',
                 'color' => 'green',
                 'info' => null,
+                'is_expired' => false,
             ];
         } else {
             return [
                 'status' => 'selesai',
-                'label' => 'Selesai',
+                'label' => '⏹️ Selesai',
                 'color' => 'gray',
                 'info' => null,
+                'is_expired' => false,
             ];
         }
     }
 
     /**
-     * ✅ HELPER: Convert day name to date in current week
-     * Example: "Selasa" + "2026-02-24" → "2026-02-24" (if today is Selasa)
+     * ✅ HELPER: Cek apakah booking sudah expired
      */
-    private function getDateFromDayName($dayName, $today)
+    private function isBookingExpired($booking, $scheduleDate, $today): bool
     {
-        // Mapping hari Indonesia ke angka (1 = Senin, 7 = Minggu)
-        $dayToNum = [
-            'Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4,
-            'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 7,
-            'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3,
-            'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6, 'Sunday' => 7,
-        ];
-        
-        $targetDayNum = $dayToNum[$dayName] ?? null;
-        if (!$targetDayNum) {
-            return $today; // Fallback ke today jika hari tidak dikenali
-        }
-        
-        $todayObj = Carbon::parse($today);
-        $todayDayNum = $todayObj->dayOfWeekIso; // 1 = Senin, 7 = Minggu
-        
-        // Hitung selisih hari
-        $diff = $targetDayNum - $todayDayNum;
-        
-        // Return tanggal yang sesuai
-        return $todayObj->copy()->addDays($diff)->toDateString();
+        if ($scheduleDate >= $today) return false;
+        $finalStatuses = ['confirmed', 'rejected', 'cancelled'];
+        if (in_array($booking->status, $finalStatuses)) return false;
+        return true;
     }
 
     /**
-     * Booking endpoint (API)
+     * ✅ HELPER: Mapping status booking ke label, warna, dan info
      */
-    public function booking(Request $request)
+    private function getBookingStatusMap($booking, $isToday, $startTime, $endTime, $now, $isKalabView = false): array
     {
-        $validated = $request->validate([
-            'lab_name' => 'required|string',
-            'session' => 'required|string',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-            'booking_date' => 'required|date|after_or_equal:today',
-            'purpose' => 'required|string|max:1000',
+        $userName = $booking->user->name ?? 'Unknown';
+        $purpose = Str::limit($booking->purpose ?? '', 30);
+
+        return match($booking->status) {
+            'pending' => [
+                'status' => 'pending',
+                'label' => $isKalabView ? '⏳ Menunggu Approval Dosen' : '🔒 Terisi (Pending)',
+                'color' => $isKalabView ? 'orange' : 'gray',
+                'info' => "{$userName}" . ($isKalabView ? " - {$purpose}" : ""),
+            ],
+            'approved_dosen' => [
+                'status' => 'approved_dosen',
+                'label' => $isKalabView ? '✅ Disetujui Dosen' : '🔒 Terisi (Approved)',
+                'color' => $isKalabView ? 'blue' : 'gray',
+                'info' => "{$userName}" . ($isKalabView ? " - {$purpose}" : ""),
+            ],
+            'approved_teknisi' => [
+                'status' => 'approved_teknisi',
+                'label' => $isKalabView ? '✅ Menunggu Approval Kalab' : '🔒 Terisi (Approved)',
+                'color' => $isKalabView ? 'indigo' : 'gray',
+                'info' => "{$userName}" . ($isKalabView ? " - {$purpose}" : ""),
+            ],
+            'confirmed' => [
+                'status' => 'terisi',
+                'label' => '🔒 Terisi - Booking Confirmed',
+                'color' => 'red',
+                'info' => "{$userName} - {$purpose}",
+            ],
+            'rejected' => [
+                'status' => 'rejected',
+                'label' => '❌ Ditolak',
+                'color' => 'gray',
+                'info' => "{$userName}" . ($booking->rejection_reason ? " ({$booking->rejection_reason})" : ""),
+            ],
+            'cancelled' => [
+                'status' => 'cancelled',
+                'label' => '🗑️ Dibatalkan',
+                'color' => 'gray',
+                'info' => "{$userName}",
+            ],
+            default => [
+                'status' => 'unknown',
+                'label' => '❓ ' . ucfirst($booking->status ?? 'Unknown'),
+                'color' => 'gray',
+                'info' => "{$userName}",
+            ],
+        };
+    }
+
+    /**
+     * ✅ API endpoint untuk filter jadwal via kalender (AJAX)
+     */
+    public function getScheduleByDate(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+            'lab' => 'nullable|string',
         ]);
 
         $user = Auth::user();
-        
-        $status = match($user->role) {
-            'mahasiswa' => 'pending',
-            'dosen' => 'pending',
-            'teknisi' => 'approved_teknisi',
-            'ketua_lab' => 'confirmed',
-            'admin' => 'confirmed',
-            default => 'pending',
-        };
+        $selectedDate = Carbon::parse($request->date)->toDateString();
+        $scheduleDayName = Carbon::parse($selectedDate)->isoFormat('dddd');
+        $today = Carbon::now('Asia/Jakarta')->toDateString();
+        $todayName = Carbon::now('Asia/Jakarta')->isoFormat('dddd');
 
-        // ✅ Hitung start_date dan end_date dari booking_date + duration
-        $bookingDate = Carbon::parse($validated['booking_date']);
-        $startDate = $bookingDate->copy();
-        $endDate = $bookingDate->copy(); // Default 1 hari
+        // Filter booking status berdasarkan role user
+        $isKalabView = $user->isKalab() && session('dashboard_view_mode', 'kalab') === 'kalab';
+        $bookingStatusFilter = $isKalabView
+            ? ['pending', 'approved_dosen', 'approved_teknisi', 'confirmed']
+            : ['confirmed'];
 
-        $booking = Booking::create([
-            'user_id' => $user->id,
-            'lab_name' => $validated['lab_name'],
-            'session' => $validated['session'],
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'],
-            'booking_date' => $validated['booking_date'],
-            'start_date' => $startDate->format('Y-m-d'),
-            'end_date' => $endDate->format('Y-m-d'),
-            'duration_days' => 1,
-            'purpose' => $validated['purpose'],
-            'phone' => $user->phone ?? '',
-            'prodi' => $user->prodi ?? 'Teknik Informatika',
-            'golongan' => $user->golongan ?? '-',
-            'is_group' => false,
-            'status' => $status,
-        ]);
+        $labs = $request->filled('lab')
+            ? [$request->lab]
+            : Lab::where('status', 'active')->orderBy('name')->pluck('name')->toArray();
 
-        // ✅ Log untuk debug
-        \Log::info('Booking created via API', [
-            'booking_id' => $booking->id,
-            'lab' => $validated['lab_name'],
-            'date' => $validated['booking_date'],
-            'status' => $status,
-        ]);
+        if (empty($labs)) {
+            $labs = ['Multimedia Cerdas (MMC)', 'Komputasi dan Sistem Jaringan (KSI)'];
+        }
+
+        $sessions = [
+            ['start' => '07:00', 'end' => '08:00', 'name' => 'Sesi 1'],
+            ['start' => '08:00', 'end' => '09:00', 'name' => 'Sesi 2'],
+            ['start' => '09:00', 'end' => '10:00', 'name' => 'Sesi 3'],
+            ['start' => '10:00', 'end' => '11:00', 'name' => 'Sesi 4'],
+            ['start' => '11:00', 'end' => '13:00', 'name' => 'Istirahat', 'is_break' => true],
+            ['start' => '13:00', 'end' => '14:00', 'name' => 'Sesi 5'],
+            ['start' => '14:00', 'end' => '15:00', 'name' => 'Sesi 6'],
+            ['start' => '15:00', 'end' => '16:00', 'name' => 'Sesi 7'],
+            ['start' => '16:00', 'end' => '17:00', 'name' => 'Sesi 8'],
+        ];
+
+        $scheduleData = [];
+        foreach ($labs as $lab) {
+            $sessionsData = [];
+            foreach ($sessions as $session) {
+                $status = $this->getSessionStatusFromDb(
+                    $lab, $session['start'], $session['end'],
+                    $selectedDate, $scheduleDayName, $today, $todayName,
+                    $isKalabView, $bookingStatusFilter
+                );
+
+                $sessionsData[] = [
+                    'session' => $session['name'],
+                    'start' => $session['start'],
+                    'end' => $session['end'],
+                    'status' => $status['status'],
+                    'status_label' => $status['label'],
+                    'status_color' => $status['color'],
+                    'is_break' => $session['is_break'] ?? false,
+                    'booking_info' => $status['info'] ?? null,
+                    'booking_id' => $status['booking_id'] ?? null,
+                    'is_expired' => $status['is_expired'] ?? false,
+                ];
+            }
+            $scheduleData[$lab] = $sessionsData;
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Booking berhasil diajukan!',
-            'booking_id' => $booking->id,
-            'redirect' => route('booking.index') . '?refresh=1', // ✅ Trigger refresh
+            'date' => $selectedDate,
+            'day_name' => $scheduleDayName,
+            'view_mode' => $isKalabView ? 'kalab' : 'dosen',
+            'schedule' => $scheduleData,
         ]);
     }
 }

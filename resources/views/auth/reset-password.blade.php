@@ -3,87 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password - Polije</title>
-    @vite('resources/css/app.css')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Reset Password - SiPinLab Polije</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
-        <!-- Logo/Icon -->
-        <div class="flex justify-center mb-6">
-            <div class="bg-white p-5 rounded-full shadow-lg">
-                <svg class="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
-            </div>
-        </div>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen flex items-center justify-center p-4">
 
-        <!-- Title -->
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">Lupa Password</h1>
-        <p class="text-center text-gray-600 mb-8">Buat password baru</p>
+<div class="w-full max-w-md">
 
-        <!-- Form -->
-        <form method="POST" action="{{ route('password.update') }}" class="space-y-6 bg-white p-8 rounded-2xl shadow-xl">
-            @csrf
-
-            <!-- New Password Input -->
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
-                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
-                    Password Baru
-                </label>
-                <input type="password"
-                       id="password"
-                       name="password"
-                       required
-                       autofocus
-                       autocomplete="new-password"
-                       class="w-full px-4 py-3 bg-gray-100 border-2 border-transparent rounded-full focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all duration-200 @error('password') border-red-500 bg-red-50 @enderror">
-                @error('password')
-                    <p class="mt-2 text-sm text-red-600 flex items-center">
-                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                        </svg>
-                        {{ $message }}
-                    </p>
-                @enderror
-                <p class="mt-2 text-xs text-gray-500">Minimal 8 karakter, huruf besar, huruf kecil, angka, dan simbol</p>
-            </div>
-
-            <!-- Confirm Password Input -->
-            <div>
-                <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-2">
-                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                    </svg>
-                    Konfirmasi Password
-                </label>
-                <input type="password"
-                       id="password_confirmation"
-                       name="password_confirmation"
-                       required
-                       autocomplete="new-password"
-                       class="w-full px-4 py-3 bg-gray-100 border-2 border-transparent rounded-full focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all duration-200">
-            </div>
-
-            <!-- Confirm Button -->
-            <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-4 rounded-full transition-all duration-200 ease-in-out transform hover:scale-[1.02] hover:shadow-lg flex items-center justify-center group">
-                <svg class="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Konfirmasi
-            </button>
-        </form>
-
-        <!-- Footer -->
-        <div class="mt-8 text-center">
-            <p class="text-sm text-gray-500">
-                © {{ date('Y') }} Politeknik Negeri Jember
-            </p>
+    <!-- LOGO -->
+    <div class="flex justify-center mb-6">
+        <div class="bg-white p-4 rounded-full border-2 border-blue-500 shadow-md">
+            <img src="{{ asset('img/polije.png') }}"
+                 class="w-20 h-20 object-contain">
         </div>
     </div>
+
+    <!-- TITLE -->
+    <div class="text-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Reset Password</h1>
+        <p class="text-gray-600 text-sm">Buat password baru</p>
+    </div>
+
+    <!-- FORM -->
+    <form method="POST" action="{{ route('password.update') }}" class="bg-white p-6 rounded-2xl shadow-xl">
+        @csrf
+
+        <!-- PASSWORD -->
+        <div class="mb-6 relative">
+            <label class="text-sm font-semibold text-gray-700 block mb-2">Password Baru</label>
+
+            <input type="password"
+                   id="password"
+                   name="password"
+                   required
+                   class="w-full px-4 py-3 pr-12 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
+
+            <!-- TOGGLE -->
+            <button type="button"
+                    onclick="togglePassword('password','eye1','eye1off')"
+                    class="absolute right-4 top-[42px] text-gray-500 hover:text-blue-600">
+
+                <!-- EYE -->
+                <svg id="eye1" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          d="M15 12a3 3 0 11-6 0"/>
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+
+                <!-- EYE OFF -->
+                <svg id="eye1off" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-4-9-7 0-1.02.374-2.1 1.05-3.175M6.223 6.223A9.953 9.953 0 0112 5c5 0 9 4 9 7 0 1.657-.993 3.343-2.64 4.732M15 12a3 3 0 00-3-3m0 6a3 3 0 003-3"/>
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          d="M3 3l18 18"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- CONFIRM PASSWORD -->
+        <div class="mb-6 relative">
+            <label class="text-sm font-semibold text-gray-700 block mb-2">Konfirmasi Password</label>
+
+            <input type="password"
+                   id="password_confirmation"
+                   name="password_confirmation"
+                   required
+                   class="w-full px-4 py-3 pr-12 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
+
+            <!-- TOGGLE -->
+            <button type="button"
+                    onclick="togglePassword('password_confirmation','eye2','eye2off')"
+                    class="absolute right-4 top-[42px] text-gray-500 hover:text-blue-600">
+
+                <!-- EYE -->
+                <svg id="eye2" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          d="M15 12a3 3 0 11-6 0"/>
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7"/>
+                </svg>
+
+                <!-- EYE OFF -->
+                <svg id="eye2off" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-4-9-7"/>
+                    <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          d="M3 3l18 18"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- BUTTON -->
+        <button type="submit"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl">
+            Reset Password
+        </button>
+    </form>
+
+    <!-- FOOTER -->
+    <div class="mt-6 text-center text-sm text-gray-500">
+        © {{ date('Y') }} Polije
+    </div>
+
+</div>
+
+<!-- SCRIPT -->
+<script>
+function togglePassword(fieldId, eyeId, eyeOffId) {
+    const field = document.getElementById(fieldId);
+    const eye = document.getElementById(eyeId);
+    const eyeOff = document.getElementById(eyeOffId);
+
+    if (field.type === "password") {
+        field.type = "text";
+        eye.classList.add("hidden");
+        eyeOff.classList.remove("hidden");
+    } else {
+        field.type = "password";
+        eye.classList.remove("hidden");
+        eyeOff.classList.add("hidden");
+    }
+}
+</script>
+
 </body>
 </html>

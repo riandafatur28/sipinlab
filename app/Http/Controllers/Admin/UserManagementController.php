@@ -52,7 +52,7 @@ class UserManagementController extends Controller
     }
 
     /**
-     * Store new user
+     * Store new user - WITH lab_name SUPPORT FOR TEKNISI
      */
     public function store(Request $request)
     {
@@ -66,7 +66,8 @@ class UserManagementController extends Controller
             'prodi' => ['nullable', 'string', 'max:255'],
             'golongan' => ['nullable', 'string', 'max:10'],
             'phone' => ['nullable', 'string', 'max:20'],
-            'is_kalab' => ['nullable', 'boolean'], // ✅ Validasi is_kalab
+            'is_kalab' => ['nullable', 'boolean'],
+            'lab_name' => ['nullable', 'string', 'max:255'], // ✅ Validasi lab_name
         ]);
 
         // Default password = NIM/NIP
@@ -86,6 +87,11 @@ class UserManagementController extends Controller
             ]);
         }
 
+        // ✅ Validasi: Teknisi wajib memilih lab
+        if ($validated['role'] === 'teknisi' && empty($validated['lab_name'])) {
+            return back()->withInput()->with('error', '❌ Teknisi wajib memilih laboratorium!');
+        }
+
         // Siapkan data untuk disimpan
         $userData = [
             'name' => $validated['name'],
@@ -97,13 +103,23 @@ class UserManagementController extends Controller
             'golongan' => $validated['golongan'] ?? null,
             'phone' => $validated['phone'] ?? null,
             'is_kalab' => $validated['is_kalab'] ?? false,
+            'lab_name' => $validated['lab_name'] ?? null, // ✅ Simpan lab_name
         ];
 
-        // Set NIM/NIP sesuai role
+        // Set NIM/NIP dan Prodi sesuai role
         if ($validated['role'] === 'mahasiswa') {
             $userData['nim'] = $validated['nim'] ?? null;
+            $userData['prodi'] = 'Teknik Informatika'; // Auto-set prodi untuk mahasiswa
         } elseif ($validated['role'] === 'dosen') {
             $userData['nip'] = $validated['nip'] ?? null;
+            $userData['prodi'] = 'Teknik Informatika'; // Auto-set prodi untuk dosen
+        } elseif ($validated['role'] === 'teknisi') {
+            $userData['nip'] = $validated['nip'] ?? null;
+            // prodi tidak diisi untuk teknisi (karena khusus TI)
+        } else {
+            // admin atau ketua_lab
+            $userData['nip'] = $validated['nip'] ?? null;
+            // prodi tidak diisi untuk admin/kalab
         }
 
         User::create($userData);
@@ -129,7 +145,7 @@ class UserManagementController extends Controller
     }
 
     /**
-     * Update user
+     * Update user - WITH lab_name SUPPORT FOR TEKNISI
      */
     public function update(Request $request, User $user)
     {
@@ -142,7 +158,8 @@ class UserManagementController extends Controller
             'prodi' => ['nullable', 'string', 'max:255'],
             'golongan' => ['nullable', 'string', 'max:10'],
             'phone' => ['nullable', 'string', 'max:20'],
-            'is_kalab' => ['nullable', 'boolean'], // ✅ Validasi is_kalab
+            'is_kalab' => ['nullable', 'boolean'],
+            'lab_name' => ['nullable', 'string', 'max:255'], // ✅ Validasi lab_name
         ]);
 
         // ✅ Logic: Hanya dosen yang bisa jadi kalab
@@ -168,6 +185,11 @@ class UserManagementController extends Controller
             $validated['is_kalab'] = false;
         }
 
+        // ✅ Validasi: Teknisi wajib memilih lab
+        if ($validated['role'] === 'teknisi' && empty($validated['lab_name'])) {
+            return back()->withInput()->with('error', '❌ Teknisi wajib memilih laboratorium!');
+        }
+
         // Siapkan data update
         $updateData = [
             'name' => $validated['name'],
@@ -177,18 +199,27 @@ class UserManagementController extends Controller
             'golongan' => $validated['golongan'] ?? null,
             'phone' => $validated['phone'] ?? null,
             'is_kalab' => $validated['is_kalab'] ?? false,
+            'lab_name' => $validated['lab_name'] ?? null, // ✅ Update lab_name
         ];
 
         // Set NIM/NIP sesuai role
         if ($validated['role'] === 'mahasiswa') {
             $updateData['nim'] = $validated['nim'] ?? null;
-            $updateData['nip'] = null; // Clear NIP jika bukan dosen
+            $updateData['nip'] = null;
+            $updateData['prodi'] = 'Teknik Informatika';
         } elseif ($validated['role'] === 'dosen') {
             $updateData['nip'] = $validated['nip'] ?? null;
-            $updateData['nim'] = null; // Clear NIM jika bukan mahasiswa
-        } else {
             $updateData['nim'] = null;
-            $updateData['nip'] = null;
+            $updateData['prodi'] = 'Teknik Informatika';
+        } elseif ($validated['role'] === 'teknisi') {
+            $updateData['nip'] = $validated['nip'] ?? null;
+            $updateData['nim'] = null;
+            // prodi tidak diubah untuk teknisi
+        } else {
+            // admin atau ketua_lab
+            $updateData['nim'] = null;
+            $updateData['nip'] = $validated['nip'] ?? null;
+            // prodi tidak diubah untuk admin/kalab
         }
 
         $user->update($updateData);

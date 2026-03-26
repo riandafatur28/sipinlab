@@ -3,58 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verifikasi OTP - Polije</title>
-    @vite('resources/css/app.css')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Verifikasi OTP - SiPinLab Polije</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen flex items-center justify-center p-4">
+
     <div class="w-full max-w-md">
-        <!-- Logo/Icon -->
+       <!-- LOGO -->
         <div class="flex justify-center mb-6">
-            <div class="bg-white p-5 rounded-full shadow-lg">
-                <svg class="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
+            <div class="bg-white p-4 rounded-full border-2 border-blue-500 shadow-md">
+                <img src="{{ asset('img/polije.png') }}"
+                    alt="Logo Polije"
+                    class="w-20 h-20 object-contain transition duration-300 hover:scale-110">
             </div>
         </div>
 
         <!-- Title -->
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">Lupa Password</h1>
-        <p class="text-center text-gray-600 mb-6">Masukkan kode OTP yang telah dikirim</p>
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Verifikasi OTP</h1>
+            <p class="text-gray-600">Masukkan kode OTP yang telah dikirim ke email Anda</p>
+        </div>
 
         <!-- Info Box -->
         <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-            <p class="text-sm text-blue-800 text-center">
-                <svg class="inline w-4 h-4 mr-1 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+            <div class="flex items-start">
+                <svg class="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                Kode OTP telah dikirim ke email Anda<br>
-                <span class="font-semibold text-blue-600">Kode berlaku selama 5 menit</span>
-            </p>
+                <p class="text-sm text-blue-800">
+                    Kode OTP telah dikirim ke email Anda<br>
+                    <span class="font-semibold text-blue-600">⏱️ Kode berlaku selama 5 menit</span>
+                </p>
+            </div>
         </div>
 
         <!-- Success Message -->
         @if (session('status'))
             <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-                <p class="text-sm text-green-800 flex items-center justify-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-green-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    {{ session('status') }}
-                </p>
+                    <p class="text-sm text-green-800">{{ session('status') }}</p>
+                </div>
+            </div>
+        @endif
+
+        <!-- Error Messages -->
+        @if ($errors->any())
+            <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-red-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <p class="text-sm text-red-800 font-semibold mb-2">Terjadi Kesalahan:</p>
+                        <ul class="text-sm text-red-700 space-y-1">
+                            @foreach ($errors->all() as $error)
+                                <li>• {{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
             </div>
         @endif
 
         <!-- Form -->
-        <form method="POST" action="{{ route('password.verify.post') }}" id="otp-form" class="bg-white p-8 rounded-2xl shadow-xl">
+        <form method="POST" action="{{ route('password.verify.post') }}" id="otp-form" class="bg-white p-6 rounded-2xl shadow-xl border border-gray-100">
             @csrf
 
             <!-- OTP Input -->
             <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-4 text-center">
-                    Kode OTP
+                <label class="block text-sm font-semibold text-gray-700 mb-4 text-center">
+                    <div class="flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                        Kode OTP (6 Digit)
+                    </div>
                 </label>
-                <div class="flex justify-center gap-2 mb-2">
+
+                <div class="flex justify-center gap-2 mb-2 flex-wrap">
                     <input type="text" name="otp_1" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all" autocomplete="off">
                     <input type="text" name="otp_2" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all" autocomplete="off">
                     <input type="text" name="otp_3" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all" autocomplete="off">
@@ -62,6 +92,7 @@
                     <input type="text" name="otp_5" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all" autocomplete="off">
                     <input type="text" name="otp_6" maxlength="1" class="otp-input w-12 h-14 text-center text-2xl font-bold bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all" autocomplete="off">
                 </div>
+
                 <!-- Hidden input untuk menyimpan OTP lengkap -->
                 <input type="hidden" name="otp" id="otp-full" value="">
 
@@ -77,18 +108,21 @@
 
             <!-- Timer & Resend -->
             <div class="text-center mb-6">
-                <span id="timer" class="inline-flex items-center text-sm text-gray-500 mb-2">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div id="timer" class="inline-flex items-center text-sm text-gray-500 mb-3 bg-gray-100 px-4 py-2 rounded-full">
+                    <svg class="w-4 h-4 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    <span id="timer-text">01:00</span>
-                </span>
-                <div class="mt-2">
+                    <span id="timer-text" class="font-mono font-semibold">01:00</span>
+                </div>
+                <div>
                     <button type="button"
                             id="resend-button"
                             onclick="resendOTP()"
                             disabled
-                            class="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-blue-600 transition-colors">
+                            class="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-blue-600 transition-colors inline-flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
                         Kirim Ulang Kode
                     </button>
                 </div>
@@ -96,29 +130,30 @@
 
             <!-- Confirm Button -->
             <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-4 rounded-xl transition-all duration-200 ease-in-out transform hover:scale-[1.02] hover:shadow-lg flex items-center justify-center group">
-                <svg class="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-4 rounded-xl transition-all duration-200 ease-in-out transform hover:scale-[1.02] hover:shadow-lg flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                Konfirmasi
+                <span>Verifikasi OTP</span>
             </button>
         </form>
 
         <!-- Back -->
         <div class="mt-6 text-center">
-            <a href="{{ route('password.request') }}" class="text-sm text-gray-600 hover:text-gray-800 hover:underline inline-flex items-center">
+            <a href="{{ route('password.request') }}" class="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-800 hover:underline">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
-                Kembali
+                Kembali ke Halaman Sebelumnya
             </a>
         </div>
 
         <!-- Footer -->
         <div class="mt-8 text-center">
             <p class="text-sm text-gray-500">
-                © {{ date('Y') }} Politeknik Negeri Jember
+                © {{ date('Y') }} Politeknik Negeri Jember - SiPinLab
             </p>
+            <p class="text-xs text-gray-400 mt-1">Sistem Peminjaman Laboratorium</p>
         </div>
     </div>
 

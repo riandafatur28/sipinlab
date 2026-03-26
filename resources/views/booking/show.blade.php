@@ -3,29 +3,43 @@
 @section('title', 'Detail Booking')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
+<div class="max-w-5xl mx-auto">
 
     <!-- Header -->
-    <div class="mb-8">
-        <a href="{{ route('booking.index') }}" class="text-blue-600 hover:text-blue-800 mb-4 inline-flex items-center gap-2">
+    <div class="mb-8 flex justify-between items-start">
+        <div>
+            <a href="{{ route('booking.index') }}" class="text-blue-600 hover:text-blue-800 mb-4 inline-flex items-center gap-2 text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Kembali ke Daftar Booking
+            </a>
+            <h1 class="text-3xl font-bold text-gray-800">📋 Detail Booking</h1>
+            <p class="text-gray-600 mt-1">Informasi lengkap peminjaman laboratorium</p>
+        </div>
+
+        @if($booking->isConfirmed())
+        <a href="{{ route('booking.download-approved', $booking) }}" target="_blank"
+           class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow flex items-center gap-2 transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            Kembali ke Dashboard
+            Unduh PDF
         </a>
-        <h1 class="text-3xl font-bold text-gray-800">📋 Detail Booking</h1>
+        @endif
     </div>
 
     <!-- Success/Error Messages -->
     @if(session('success'))
-    <div class="mb-6 p-4 bg-green-50 border border-green-300 rounded-lg text-green-800">
+    <div class="mb-6 p-4 bg-green-50 border border-green-300 rounded-lg text-green-800 flex items-center gap-3">
+        <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         {{ session('success') }}
     </div>
     @endif
 
     @if($errors->any())
-    <div class="mb-6 p-4 bg-red-50 border border-red-300 rounded-lg">
-        <ul class="list-disc list-inside text-red-700 text-sm">
+    <div class="mb-6 p-4 bg-red-50 border border-red-300 rounded-lg text-red-700">
+        <ul class="list-disc list-inside text-sm">
             @foreach($errors->all() as $error)
                 <li>{{ $error }}</li>
             @endforeach
@@ -34,60 +48,102 @@
     @endif
 
     <!-- Booking Info Card -->
-    <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-8">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
         <!-- Header dengan Status -->
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-            <div>
-                <h2 class="text-xl font-bold text-gray-800">{{ $booking->lab_name }}</h2>
-                <p class="text-sm text-gray-600">{{ $booking->session }} • {{ $booking->booking_date->format('d M Y') }}</p>
+        <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-100 p-3 rounded-lg">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">{{ $booking->lab_name }}</h2>
+                    <p class="text-sm text-gray-600">{{ $booking->session }} • {{ $booking->booking_date->format('d M Y') }}</p>
+                </div>
             </div>
             <span class="px-4 py-2 text-sm font-semibold rounded-full {{ $booking->getStatusBadgeClass() }}">
                 {{ $booking->getStatusLabel() }}
             </span>
         </div>
 
-        <div class="p-6">
+        <div class="p-8">
             <!-- Grid Info -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+
                 <!-- Pemohon -->
                 <div>
-                    <h3 class="text-sm font-semibold text-gray-700 mb-2">👤 Pemohon</h3>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <p class="font-semibold text-gray-800">{{ $booking->user->name }}</p>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">👤 Data Pemohon</h3>
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-2">
+                        <p class="font-bold text-gray-800">{{ $booking->user->name }}</p>
                         <p class="text-sm text-gray-600">{{ $booking->user->role === 'mahasiswa' ? 'NIM: ' . ($booking->user->nim ?? 'N/A') : 'NIP: ' . ($booking->user->nip ?? 'N/A') }}</p>
-                        <p class="text-sm text-gray-600">{{ $booking->user->email }}</p>
-                        <p class="text-sm text-gray-600">📞 {{ $booking->phone }}</p>
+                        <p class="text-sm text-gray-600 break-all">{{ $booking->user->email }}</p>
+                        <p class="text-sm text-gray-600 font-medium flex items-center gap-2">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            {{ $booking->phone ?? '-' }}
+                        </p>
+                        @if($booking->user->role === 'mahasiswa')
+                        <p class="text-xs text-gray-500 mt-2 border-t pt-2 border-gray-200">Prodi: {{ $booking->prodi ?? 'Teknik Informatika' }} - Gol. {{ $booking->golongan ?? '-' }}</p>
+                        @endif
                     </div>
                 </div>
 
                 <!-- Waktu & Tanggal -->
                 <div>
-                    <h3 class="text-sm font-semibold text-gray-700 mb-2">📅 Waktu & Tanggal</h3>
-                    <div class="bg-gray-50 rounded-lg p-4 space-y-2">
-                        <p class="text-sm text-gray-700"><strong>Tanggal:</strong> {{ $booking->booking_date->format('d M Y') }}</p>
-                        <p class="text-sm text-gray-700"><strong>Sesi:</strong> {{ $booking->session }}</p>
-                        <p class="text-sm text-gray-700"><strong>Durasi:</strong> {{ $booking->duration_days }} hari</p>
-                        <p class="text-sm text-gray-700"><strong>Periode:</strong> {{ $booking->start_date->format('d M') }} - {{ $booking->end_date->format('d M Y') }}</p>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">📅 Jadwal Peminjaman</h3>
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-3">
+                        <div class="flex justify-between items-center border-b pb-2 border-gray-200">
+                            <span class="text-sm text-gray-500">Tanggal Mulai</span>
+                            <span class="font-semibold text-gray-800">{{ \Carbon\Carbon::parse($booking->start_date)->format('d M Y') }}</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b pb-2 border-gray-200">
+                            <span class="text-sm text-gray-500">Tanggal Selesai</span>
+                            <span class="font-semibold text-gray-800">{{ \Carbon\Carbon::parse($booking->end_date)->format('d M Y') }}</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b pb-2 border-gray-200">
+                            <span class="text-sm text-gray-500">Waktu Sesi</span>
+                            <span class="font-semibold text-gray-800">{{ $booking->session }}</span>
+                        </div>
+                        <div class="pt-1">
+                             <span class="text-xs text-gray-500">Durasi</span>
+                             <span class="block font-semibold text-blue-600">{{ $booking->duration_days }} Hari</span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Kegiatan -->
                 <div>
-                    <h3 class="text-sm font-semibold text-gray-700 mb-2">📚 Kegiatan</h3>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <p class="font-semibold text-gray-800">{{ $booking->activity }}</p>
-                        <p class="text-sm text-gray-600 mt-2">{{ $booking->purpose }}</p>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">📚 Rincian Kegiatan</h3>
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <span class="text-xs text-gray-500 block mb-1">Jenis Kegiatan</span>
+                        <div class="font-semibold text-gray-800 mb-3">{{ $booking->activity }}</div>
+
+                        <span class="text-xs text-gray-500 block mb-1">Keperluan</span>
+                        <div class="text-sm text-gray-700 italic">{{ $booking->purpose }}</div>
+
+                        @if($booking->notes)
+                        <div class="mt-4 pt-3 border-t border-gray-200">
+                            <span class="text-xs text-gray-500 block mb-1">Kebutuhan Khusus</span>
+                            <div class="text-sm text-gray-700">{{ $booking->notes }}</div>
+                        </div>
+                        @endif
                     </div>
                 </div>
 
-                <!-- Anggota (jika ada) -->
+                <!-- Anggota Kelompok -->
                 @if($booking->is_group && $booking->membersCollection->count() > 0)
                 <div>
-                    <h3 class="text-sm font-semibold text-gray-700 mb-2">👥 Anggota Kelompok</h3>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <ul class="space-y-1 text-sm text-gray-700">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">👥 Anggota Kelompok ({{ $booking->membersCollection->count() }})</h3>
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <ul class="space-y-2 text-sm text-gray-700 pr-2">
                             @foreach($booking->membersCollection as $member)
-                            <li>• {{ $member->name }} ({{ $member->nim ?? 'N/A' }})</li>
+                            <li class="flex items-start gap-2">
+                                <span class="block w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5"></span>
+                                <div>
+                                    <span class="font-medium">{{ $member->name }}</span>
+                                    <span class="text-xs text-gray-500 ml-1">({{ $member->nim ?? '-' }})</span>
+                                </div>
+                            </li>
                             @endforeach
                         </ul>
                     </div>
@@ -97,161 +153,273 @@
                 <!-- Supervisor -->
                 @if($booking->supervisor)
                 <div>
-                    <h3 class="text-sm font-semibold text-gray-700 mb-2">👨‍🏫 Dosen Pembimbing</h3>
-                    <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">👨‍🏫 Dosen Pembimbing</h3>
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
                         <p class="font-semibold text-gray-800">{{ $booking->supervisor->name }}</p>
-                        <p class="text-sm text-gray-600">{{ $booking->supervisor->email }}</p>
+                        <p class="text-sm text-gray-600 mt-1">{{ $booking->supervisor->email }}</p>
                     </div>
                 </div>
                 @endif
 
-                <!-- Peralatan -->
-                @if($booking->notes)
+                <!-- Metadata -->
                 <div>
-                    <h3 class="text-sm font-semibold text-gray-700 mb-2">🔧 Kebutuhan Peralatan</h3>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <p class="text-sm text-gray-700">{{ $booking->notes }}</p>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">⚙️ Informasi Sistem</h3>
+                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">ID Booking</span>
+                            <span class="font-mono font-semibold text-gray-800">#{{ str_pad($booking->id, 5, '0', STR_PAD_LEFT) }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Diajukan Oleh</span>
+                            <span class="font-semibold text-gray-800">{{ ucfirst(Auth::user()->role) }}</span>
+                        </div>
+                         <div class="flex justify-between">
+                            <span class="text-gray-500">Dibuat Pada</span>
+                            <span class="font-medium text-gray-800">{{ $booking->created_at->isoFormat('D MMM YYYY HH:mm') }}</span>
+                        </div>
                     </div>
                 </div>
-                @endif
             </div>
 
             <!-- Approval Timeline -->
-            <div class="border-t border-gray-200 pt-6">
-                <h3 class="text-sm font-semibold text-gray-700 mb-4">📊 Timeline Persetujuan</h3>
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full {{ $booking->isApprovedByDosen() ? 'bg-green-500' : ($booking->user->role === 'dosen' ? 'bg-gray-300' : 'bg-yellow-500') }} text-white flex items-center justify-center text-xs font-bold">
-                                {{ $booking->isApprovedByDosen() ? '✓' : '1' }}
+            <div class="border-t border-gray-200 pt-8 pb-8">
+                <h3 class="text-sm font-bold text-gray-700 mb-6 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    Timeline Persetujuan
+                </h3>
+
+                <div class="relative">
+                    <div class="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200 -ml-px z-0"></div>
+
+                    <div class="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <!-- Step 1: Dosen -->
+                        <div class="md:flex items-center md:items-start gap-4">
+                            <div class="flex-shrink-0 w-16 h-16 relative flex items-center justify-center">
+                                <div class="w-16 h-16 rounded-full {{ $booking->isApprovedByDosen() ? 'bg-green-100' : 'bg-gray-100' }} flex items-center justify-center text-xl font-bold
+                                    {{ $booking->isApprovedByDosen() ? 'text-green-600' : 'text-gray-400' }} border-4 border-white shadow-sm">
+                                    {{ $booking->isApprovedByDosen() ? '✓' : '1' }}
+                                </div>
                             </div>
-                            <div>
-                                <p class="text-sm font-medium text-gray-800">Dosen</p>
-                                <p class="text-xs text-gray-500">{{ $booking->approved_at_dosen ? $booking->approved_at_dosen->format('d M Y H:i') : 'Menunggu' }}</p>
+                            <div class="flex-1 pt-2 md:pt-0">
+                                <h4 class="text-sm font-bold text-gray-800 mb-1">Persetujuan Dosen</h4>
+                                <p class="text-xs text-gray-500">Menunggu persetujuan dari dosen pembimbing atau pengajar lab.</p>
+                                <div class="mt-2 text-xs font-mono text-gray-400">
+                                    {{ $booking->approved_at_dosen ? '✅ Disetujui oleh ' . ($booking->userById($booking->approved_by_dosen)?->name ?? 'Admin') . ' pada ' . $booking->approved_at_dosen->format('d/m/Y H:i') : 'Menunggu...' }}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="w-16 h-1 bg-gray-300 {{ $booking->isApprovedByDosen() ? 'bg-green-500' : '' }}"></div>
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full {{ $booking->isApprovedByTeknisi() ? 'bg-green-500' : ($booking->isApprovedByDosen() ? 'bg-yellow-500' : 'bg-gray-300') }} text-white flex items-center justify-center text-xs font-bold">
-                                {{ $booking->isApprovedByTeknisi() ? '✓' : '2' }}
+
+                        <!-- Step 2: Teknisi -->
+                        <div class="md:flex items-center md:items-start gap-4">
+                            <div class="flex-shrink-0 w-16 h-16 relative flex items-center justify-center">
+                                <div class="w-16 h-16 rounded-full {{ $booking->isApprovedByTeknisi() ? 'bg-green-100' : 'bg-gray-100' }} flex items-center justify-center text-xl font-bold
+                                    {{ $booking->isApprovedByTeknisi() ? 'text-green-600' : 'text-gray-400' }} border-4 border-white shadow-sm">
+                                    {{ $booking->isApprovedByTeknisi() ? '✓' : '2' }}
+                                </div>
                             </div>
-                            <div>
-                                <p class="text-sm font-medium text-gray-800">Teknisi</p>
-                                <p class="text-xs text-gray-500">{{ $booking->approved_at_teknisi ? $booking->approved_at_teknisi->format('d M Y H:i') : 'Menunggu' }}</p>
+                            <div class="flex-1 pt-2 md:pt-0">
+                                <h4 class="text-sm font-bold text-gray-800 mb-1">Verifikasi Teknisi</h4>
+                                <p class="text-xs text-gray-500">Teknisi akan memverifikasi ketersediaan alat dan fasilitas.</p>
+                                <div class="mt-2 text-xs font-mono text-gray-400">
+                                    {{ $booking->approved_at_teknisi ? '✅ Disetujui oleh ' . ($booking->userById($booking->approved_by_teknisi)?->name ?? '-') . ' pada ' . $booking->approved_at_teknisi->format('d/m/Y H:i') : 'Menunggu...' }}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="w-16 h-1 bg-gray-300 {{ $booking->isApprovedByTeknisi() ? 'bg-green-500' : '' }}"></div>
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full {{ $booking->isConfirmed() ? 'bg-green-500' : ($booking->isApprovedByTeknisi() ? 'bg-yellow-500' : 'bg-gray-300') }} text-white flex items-center justify-center text-xs font-bold">
-                                {{ $booking->isConfirmed() ? '✓' : '3' }}
+
+                        <!-- Step 3: Ka Lab -->
+                        <div class="md:flex items-center md:items-start gap-4">
+                            <div class="flex-shrink-0 w-16 h-16 relative flex items-center justify-center">
+                                <div class="w-16 h-16 rounded-full {{ $booking->isConfirmed() ? 'bg-green-100' : 'bg-gray-100' }} flex items-center justify-center text-xl font-bold
+                                    {{ $booking->isConfirmed() ? 'text-green-600' : 'text-gray-400' }} border-4 border-white shadow-sm">
+                                    {{ $booking->isConfirmed() ? '✓' : '3' }}
+                                </div>
                             </div>
-                            <div>
-                                <p class="text-sm font-medium text-gray-800">Ka Lab</p>
-                                <p class="text-xs text-gray-500">{{ $booking->approved_at_kalab ? $booking->approved_at_kalab->format('d M Y H:i') : 'Menunggu' }}</p>
+                            <div class="flex-1 pt-2 md:pt-0">
+                                <h4 class="text-sm font-bold text-gray-800 mb-1">Konfirmasi Akhir</h4>
+                                <p class="text-xs text-gray-500">Kalab melakukan finalisasi jadwal dan konfirmasi akses.</p>
+                                <div class="mt-2 text-xs font-mono text-gray-400">
+                                    {{ $booking->isConfirmed() ? '✅ KONFIRMASI FINAL by ' . ($booking->userById($booking->approved_by_kalab)?->name ?? '-') : 'Menunggu...' }}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- ACTION BUTTONS untuk Teknisi -->
-    @if(Auth::user()->role === 'teknisi' && $booking->canApproveByCurrentTeknisi())
-    <div class="bg-orange-50 rounded-xl shadow-sm border border-orange-300 p-6 mb-8">
-        <h3 class="text-lg font-bold text-orange-800 mb-4">⚠️ Perlu Tindakan Anda (Teknisi)</h3>
-        <p class="text-sm text-orange-700 mb-6">
-            Booking ini menunggu persetujuan teknisi untuk lab <strong>{{ $booking->lab_name }}</strong>. 
-            Silakan review dan berikan tanggapan.
-        </p>
-        
-        <div class="flex gap-4">
-            <!-- Approve Button -->
-            <form action="{{ route('booking.approve-teknisi', $booking->id) }}" method="POST" class="flex-1">
-                @csrf
-                <button type="submit" 
-                        class="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    Setujui Booking
-                </button>
-            </form>
-
-            <!-- Reject Button -->
-            <button onclick="document.getElementById('rejectModal').classList.remove('hidden')" 
-                    class="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-                Tolak Booking
-            </button>
-        </div>
-    </div>
-
-    <!-- Reject Modal -->
-    <div id="rejectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">❌ Tolak Booking</h3>
-            <form action="{{ route('booking.reject', $booking->id) }}" method="POST">
-                @csrf
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Alasan Penolakan <span class="text-red-500">*</span></label>
-                    <textarea name="rejection_reason" required rows="4" maxlength="500"
-                              placeholder="Jelaskan alasan penolakan booking ini..."
-                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"></textarea>
+            <!-- ⚠️ REJECTION INFO SECTION -->
+            @if($booking->status === 'rejected')
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-6">
+                <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 text-yellow-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <div>
+                        <h4 class="text-sm font-bold text-yellow-800">Booking Ditolak</h4>
+                        <p class="text-sm text-yellow-700 mt-1">{{ $booking->rejection_reason ?? 'Alasan tidak tersedia.' }}</p>
+                    </div>
                 </div>
+            </div>
+            @endif
+
+             <!-- ⚠️ CANCELLED INFO SECTION -->
+            @if($booking->status === 'cancelled')
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-6">
+                 <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 text-gray-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <h4 class="text-sm font-bold text-gray-800">Booking Dibatalkan</h4>
+                        <p class="text-sm text-gray-700 mt-1">{{ $booking->rejection_reason ?? 'Booking dibatalkan.' }}</p>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+        </div>
+    </div>
+
+    <!-- ✅ ACTION BUTTONS AREA -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- LEFT COLUMN: Actions based on current user role -->
+        <div class="space-y-6">
+
+            <!-- 🟢 DOSEN ACTIONS -->
+            @if(auth()->user()->isDosen() && $booking->status === 'pending')
+            <div class="bg-blue-50 rounded-xl border border-blue-200 p-6">
+                <h3 class="text-lg font-bold text-blue-800 mb-2">🔎 Review & Keputusan</h3>
+                <p class="text-sm text-blue-600 mb-4">Booking diajukan oleh mahasiswa. Silakan setujui atau tolak sesuai kebutuhan praktikum/bimbingan.</p>
                 <div class="flex gap-3">
-                    <button type="button" onclick="document.getElementById('rejectModal').classList.add('hidden')"
-                            class="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium">
-                        Batal
-                    </button>
-                    <button type="submit"
-                            class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium">
-                        Tolak Booking
-                    </button>
+                    <form action="{{ route('booking.approve-dosen', $booking) }}" method="POST" class="flex-1">
+                        @csrf
+                        <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">✅ Setujui</button>
+                    </form>
+                    <button onclick="openRejectModal()" class="w-1/3 py-2 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium transition-colors">Tolak</button>
                 </div>
-            </form>
-        </div>
-    </div>
-    @endif
+            </div>
+            @endif
 
-    <!-- ACTION BUTTONS untuk Ka Lab -->
-    @if((Auth::user()->role === 'ketua_lab' || Auth::user()->role === 'admin') && $booking->canApproveByKalab())
-    <div class="bg-purple-50 rounded-xl shadow-sm border border-purple-300 p-6 mb-8">
-        <h3 class="text-lg font-bold text-purple-800 mb-4">⚠️ Perlu Konfirmasi Final (Ka Lab)</h3>
-        <p class="text-sm text-purple-700 mb-6">
-            Booking ini sudah disetujui teknisi dan menunggu konfirmasi final dari Ka Lab.
-        </p>
-        
-        <div class="flex gap-4">
-            <!-- Approve Button -->
-            <form action="{{ route('booking.approve-kalab', $booking->id) }}" method="POST" class="flex-1">
-                @csrf
-                <button type="submit" 
-                        class="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    Konfirmasi Final
-                </button>
-            </form>
+            <!-- 🟠 TEKNISI ACTIONS -->
+            @if(Auth::user()->role === 'teknisi' && $booking->canApproveByCurrentTeknisi())
+            <div class="bg-orange-50 rounded-xl border border-orange-200 p-6">
+                <h3 class="text-lg font-bold text-orange-800 mb-2">⚠️ Verifikasi Teknis</h3>
+                <p class="text-sm text-orange-600 mb-4">Pastikan peralatan tersedia dan kondisi lab layak digunakan untuk sesi ini.</p>
+                <div class="flex gap-3">
+                    <form action="{{ route('booking.approve-teknisi', $booking->id) }}" method="POST" class="flex-1">
+                        @csrf
+                        <button type="submit" class="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors">✅ Konfirmasi Tersedia</button>
+                    </form>
+                     <button onclick="document.getElementById('rejectModalTeknisi').classList.remove('hidden')" class="w-1/3 py-2 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium transition-colors">Tolak</button>
+                </div>
+            </div>
+            @endif
 
-            <!-- Reject Button -->
-            <button onclick="document.getElementById('rejectModal').classList.remove('hidden')" 
-                    class="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-                Tolak Booking
-            </button>
+            <!-- 💜 KALAB/ADMIN ACTIONS -->
+            @if((Auth::user()->role === 'ketua_lab' || Auth::user()->role === 'admin' || Auth::user()->isKalab()) && $booking->canApproveByKalab())
+            <div class="bg-purple-50 rounded-xl border border-purple-200 p-6">
+                <h3 class="text-lg font-bold text-purple-800 mb-2">📝 Konfirmasi Final</h3>
+                <p class="text-sm text-purple-600 mb-4">Tahap akhir. Bukti seluruh proses approval sudah selesai. Konfirmasi dapat dilaksanakan.</p>
+                <div class="flex gap-3">
+                    <form action="{{ route('booking.approve-kalab', $booking->id) }}" method="POST" class="flex-1">
+                        @csrf
+                        <button type="submit" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">🔓 Konfirmasi Final</button>
+                    </form>
+                     <button onclick="document.getElementById('rejectModalKalab').classList.remove('hidden')" class="w-1/3 py-2 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium transition-colors">Tolak</button>
+                </div>
+            </div>
+            @endif
+
+             <!-- 🛡️ ADMIN/STAFF DELETE ACTION -->
+             @if(Auth::user()->isAdmin() || Auth::user()->isKalab() || Auth::user()->isTeknisi())
+                @if(!in_array($booking->status, ['rejected']))
+                <div class="bg-red-50 rounded-xl border border-red-200 p-6">
+                    <h3 class="text-sm font-bold text-red-800 mb-2">⚠️ Manajemen Booking</h3>
+                    <div class="flex gap-3">
+                         <form action="{{ route('booking.destroy', $booking->id) }}" method="POST" class="flex-1" onsubmit="return confirm('Apakah Anda yakin ingin menghapus booking ini? Tindakan ini tidak dapat dibatalkan.')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="w-full py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-medium transition-colors border border-red-200">🗑️ Hapus Booking</button>
+                        </form>
+                    </div>
+                </div>
+                @endif
+             @endif
+
         </div>
+
+        <!-- RIGHT COLUMN: Quick View & Download -->
+        <div class="lg:border-l lg:pl-8">
+             <div class="bg-gray-50 rounded-xl border border-gray-200 p-6 h-full">
+                <h3 class="font-bold text-gray-700 mb-4">Info Tambahan</h3>
+                <ul class="space-y-3 text-sm text-gray-600">
+                    <li class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        ID Booking unik untuk penelusuran administratif.
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                        Pastikan waktu booking tidak bentrok dengan kegiatan akademik lain.
+                    </li>
+                    @if($booking->isConfirmed())
+                    <li class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
+                        Formulir resmi siap diunduh untuk tanda tangan basah (jika diperlukan).
+                    </li>
+                    @endif
+                </ul>
+
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <p class="text-xs text-gray-400 text-center">
+                        Dibuat melalui SiPinLab System<br>
+                        {{ date('Y') }} - Politeknik Negeri Jember
+                    </p>
+                </div>
+             </div>
+        </div>
+
     </div>
-    @endif
 
 </div>
+
+<!-- ================= MODALS ============== -->
+
+<!-- Modal Reject Dosen -->
+<div id="rejectModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 transform scale-100 transition-transform">
+        <div class="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-white">❌ Tolak Booking</h3>
+                <button type="button" onclick="closeRejectModal()" class="text-white/80 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+        </div>
+        <div class="px-6 py-5">
+            <p class="text-gray-700 mb-4">Mohon berikan alasan penolakan agar pemohon dapat memperbaruinya.</p>
+            <form action="{{ route('booking.reject', $booking) }}" method="POST">
+                @csrf
+                <textarea name="rejection_reason" required rows="4" maxlength="500" placeholder="Contoh: Jadwal bentrok dengan kuliah..."
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm">{{ old('rejection_reason') }}</textarea>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="closeRejectModal()" class="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">Batal</button>
+                    <button type="submit" class="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">Submit Penolakan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openRejectModal() {
+    document.getElementById('rejectModal').classList.remove('hidden');
+}
+function closeRejectModal() {
+    document.getElementById('rejectModal').classList.add('hidden');
+}
+// Close modal jika klik backdrop
+window.onclick = function(event) {
+    const modal = document.getElementById('rejectModal');
+    if (event.target == modal) {
+        closeRejectModal();
+    }
+}
+</script>
+
 @endsection

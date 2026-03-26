@@ -93,7 +93,7 @@
                             <p class="text-xs text-gray-500 truncate max-w-xs">{{ Str::limit($booking->purpose, 50) }}</p>
                         </td>
                         <td class="px-6 py-4 text-sm">
-                            <a href="{{ route('booking.show', $booking->id) }}" 
+                            <a href="{{ route('booking.show', $booking->id) }}"
                                class="inline-flex items-center gap-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -131,7 +131,7 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <h2 class="text-xl font-bold text-gray-800">📚 Booking Saya</h2>
-            <a href="{{ route('booking.create-dosen') }}" 
+            <a href="{{ route('booking.create-dosen') }}"
                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 + Booking Baru
             </a>
@@ -160,13 +160,13 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <a href="{{ route('booking.show', $booking->id) }}" 
+                            <a href="{{ route('booking.show', $booking->id) }}"
                                class="text-blue-600 hover:text-blue-800">Detail</a>
                             @if(!$booking->isConfirmed() && !$booking->isRejected())
                             <form action="{{ route('booking.cancel', $booking->id) }}" method="POST" class="inline">
                                 @csrf
-                                <button type="submit" class="text-red-600 hover:text-red-800 ml-3" 
-                                        onclick="return confirm('Yakin ingin membatalkan booking?')">
+                                <button type="submit" class="text-red-600 hover:text-red-800 ml-3"
+                                        onclick="openModal('cancelBookingModal')"
                                     Batal
                                 </button>
                             </form>

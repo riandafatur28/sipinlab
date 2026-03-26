@@ -5,108 +5,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Polije</title>
 
-    {{-- ✅ GUNAKAN CDN UNTUK SEMENTARA --}}
+    <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    {{-- Hapus atau comment baris ini: --}}
-    {{-- @vite('resources/css/app.css') --}}
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+
     <div class="w-full max-w-md">
-        <!-- Logo/Icon -->
+
+        <!-- LOGO -->
         <div class="flex justify-center mb-6">
-            <div class="bg-white p-4 rounded-full shadow-lg">
-                <svg class="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                </svg>
+            <div class="bg-white p-4 rounded-full border-2 border-blue-500 shadow-md">
+                <img src="{{ asset('img/polije.png') }}"
+                     alt="Logo Polije"
+                     class="w-20 h-20 object-contain transition duration-300 hover:scale-110">
             </div>
         </div>
 
-        <!-- Title -->
+        <!-- TITLE -->
         <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Login</h1>
 
-        <!-- Form -->
+        <!-- FORM -->
         <form method="POST" action="{{ route('login') }}" class="space-y-6 bg-white p-8 rounded-2xl shadow-xl">
             @csrf
 
-            <!-- Email Input -->
+            <!-- EMAIL -->
             <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
-                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                    </svg>
-                    Email
-                </label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
                 <input type="email"
-                       id="email"
                        name="email"
-                       value="{{ old('email') }}"
                        placeholder="email@polije.ac.id"
                        required
-                       autofocus
-                       autocomplete="email"
-                       class="w-full px-4 py-3 bg-gray-100 border-2 border-transparent rounded-full focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 @error('email') border-red-500 bg-red-50 @enderror">
-                @error('email')
-                    <p class="mt-2 text-sm text-red-600 flex items-center">
-                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                        </svg>
-                        {{ $message }}
-                    </p>
-                @enderror
+                       class="w-full px-4 py-3 bg-gray-100 border-2 border-transparent rounded-full focus:outline-none focus:border-blue-500 focus:bg-white">
             </div>
 
-            <!-- Password Input -->
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
-                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
-                    Password
-                </label>
+            <!-- PASSWORD + TOGGLE -->
+            <div class="relative">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+
                 <input type="password"
                        id="password"
                        name="password"
                        required
-                       autocomplete="current-password"
-                       class="w-full px-4 py-3 bg-gray-100 border-2 border-transparent rounded-full focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 @error('password') border-red-500 bg-red-50 @enderror">
-                @error('password')
-                    <p class="mt-2 text-sm text-red-600 flex items-center">
-                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                        </svg>
-                        {{ $message }}
-                    </p>
-                @enderror
+                       class="w-full px-4 py-3 pr-12 bg-gray-100 border-2 border-transparent rounded-full focus:outline-none focus:border-blue-500 focus:bg-white">
+
+                <!-- BUTTON TOGGLE -->
+                <button type="button"
+                        onclick="togglePassword()"
+                        class="absolute right-4 top-[42px] text-gray-500 hover:text-blue-600">
+
+                    <!-- ICON EYE -->
+                    <svg id="eyeOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+
+                    <!-- ICON EYE OFF -->
+                    <svg id="eyeClose" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                              d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-4-9-7 0-1.02.374-2.1 1.05-3.175M6.223 6.223A9.953 9.953 0 0112 5c5 0 9 4 9 7 0 1.657-.993 3.343-2.64 4.732M15 12a3 3 0 00-3-3m0 6a3 3 0 003-3"/>
+                        <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                              d="M3 3l18 18"/>
+                    </svg>
+                </button>
             </div>
 
-            <!-- Remember Me & Forgot Password -->
+            <!-- REMEMBER -->
             <div class="flex items-center justify-between">
                 <label class="flex items-center">
-                    <input type="checkbox" name="remember" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    <span class="ml-2 text-sm text-gray-600">Ingat saya</span>
+                    <input type="checkbox" class="mr-2">
+                    <span class="text-sm text-gray-600">Ingat saya</span>
                 </label>
-                <a href="{{ route('password.request') }}" class="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+
+                <a href="{{ route('password.request') }}" class="text-sm text-blue-600 hover:underline">
                     Lupa Password?
                 </a>
             </div>
 
-            <!-- Login Button -->
+            <!-- BUTTON -->
             <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-full transition-all duration-200 ease-in-out transform hover:scale-[1.02] hover:shadow-lg flex items-center justify-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
-                </svg>
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-full transition hover:scale-[1.02]">
                 Login
             </button>
         </form>
 
-        <!-- Footer -->
-        <div class="mt-8 text-center">
-            <p class="text-sm text-gray-500">
-                © {{ date('Y') }} Politeknik Negeri Jember
-            </p>
+        <!-- FOOTER -->
+        <div class="mt-6 text-center text-sm text-gray-500">
+            © {{ date('Y') }} Politeknik Negeri Jember
         </div>
     </div>
+
+    <!-- SCRIPT -->
+    <script>
+        function togglePassword() {
+            const password = document.getElementById("password");
+            const eyeOpen = document.getElementById("eyeOpen");
+            const eyeClose = document.getElementById("eyeClose");
+
+            if (password.type === "password") {
+                password.type = "text";
+                eyeOpen.classList.add("hidden");
+                eyeClose.classList.remove("hidden");
+            } else {
+                password.type = "password";
+                eyeOpen.classList.remove("hidden");
+                eyeClose.classList.add("hidden");
+            }
+        }
+    </script>
+
 </body>
 </html>

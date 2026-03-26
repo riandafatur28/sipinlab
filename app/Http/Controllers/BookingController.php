@@ -5,28 +5,249 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Lab;
+use App\Models\ClassSchedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class BookingController extends Controller
 {
     /**
-     * Display booking dashboard based on user role
+     * Display booking dashboard (Unified View for Admin, Teknisi, Kalab)
+     * ⚠️ UPDATED: Mahasiswa & Dosen akan diarahkan langsung ke Form Peminjaman
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
 
-        return match($user->role) {
-            'mahasiswa' => $this->mahasiswaView(),
-            'dosen' => $this->dosenView(),
-            'teknisi' => $this->teknisiView(),
-            'ketua_lab' => $this->kalabView(),
-            'admin' => $this->adminView(),
-            default => redirect()->route('dashboard'),
-        };
+        // ✅ LOGIKA BARU: Alihkan Mahasiswa & Dosen ke Halaman Buat Booking (Form)
+        if ($user->role === 'mahasiswa' || $user->role === 'dosen') {
+            return redirect()->route('booking.create');
+        }
+
+        // --- DATA & FILTER SETUP (Hanya untuk Staff/Admin/Kalab/Teknisi) ---
+
+        // Ambil semua Lab untuk Dropdown Filter
+        $labs = Lab::where('status', 'active')->orderBy('name')->pluck('name')->toArray();
+        if (empty($labs)) {
+            $labs = [
+                'Multimedia Cerdas (MMC)',
+                'Komputasi dan Sistem Jaringan (KSI)',
+                'Arsitektur dan Jaringan Komputer (AJK)',
+                'Mobile',
+                'Rekayasa Perangkat Lunak (RPL)',
+            ];
+        }
+
+        // Prepare Base Query
+        $query = Booking::with(['user'])->orderBy('created_at', 'desc');
+
+        // 1. 🚫 ROLE FILTER (Teknisi hanya lihat lab sendiri)
+        if ($user->isTeknisi() && !empty($user->lab_name)) {
+            $query->where('lab_name', $user->lab_name);
+        } else {
+            // Untuk Admin/Kalab/Dosen jika perlu filter default
+            if ($request->filled('default_lab')) {
+                $query->where('lab_name', $request->default_lab);
+            }
+        }
+
+        // 2. 🔍 SEARCH FILTER (Name/NIM/NIP)
+        if ($request->filled('search')) {
+            $query->whereHas('user', function($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                  ->orWhere('nim', 'like', "%{$request->search}%")
+                  ->orWhere('nip', 'like', "%{$request->search}%");
+            });
+        }
+
+        // 3. 🏢 LAB FILTER
+        if ($request->filled('lab')) {
+            $query->where('lab_name', $request->lab);
+        }
+
+        // 4. 📅 DATE FILTER
+        if ($request->filled('date_start') || $request->filled('date_end')) {
+            $startDate = $request->filled('date_start') ? Carbon::parse($request->date_start)->startOfDay()->toDateString() : null;
+            $endDate = $request->filled('date_end') ? Carbon::parse($request->date_end)->endOfDay()->toDateString() : null;
+
+            if ($startDate && $endDate) {
+                $query->whereBetween('booking_date', [$startDate, $endDate]);
+            } elseif ($startDate) {
+                $query->whereDate('booking_date', '>=', $startDate);
+            } elseif ($endDate) {
+                $query->whereDate('booking_date', '<=', $endDate);
+            }
+        }
+
+        // 5. ⚠️ STATUS FILTER
+        if ($request->filled('status') && $request->status !== '') {
+            $query->where('status', $request->status);
+        }
+
+        // Get Statistics (Global atau Filtered - Sesuaikan kebutuhan)
+        // Di sini kita hitung berdasarkan query yang sudah difilter agar sesuai tampilan
+        $filteredStatsQuery = clone $query;
+
+        $stats = [
+            'total_booking' => $filteredStatsQuery->count(),
+            'confirmed' => (clone $query)->where('status', 'confirmed')->count(),
+            'pending' => (clone $query)->whereIn('status', ['pending', 'approved_dosen'])->count(),
+            'hari_ini' => (clone $query)->whereDate('booking_date', today())->count(),
+        ];
+
+        // Paginate results
+        $bookings = $query->paginate(10)->withQueryString();
+
+        // FIX: Siapkan data terpisah agar bisa digabungkan dengan array kustom di compact
+        $request_filter_values = $request->all();
+
+        return view('booking.index', compact(
+            'bookings',
+            'stats',
+            'user',
+            'labs',
+            'request_filter_values'
+        ));
+    }
+
+    /**
+     * ⚠️ NEW: Hapus booking - Untuk Admin, Kalab, Teknisi
+     */
+    public function destroy(Request $request, Booking $booking)
+    {
+        $user = Auth::user();
+
+        // Authorization check
+        if (!$user->isAdmin() && !$user->isKalab() && $user->role !== 'ketua_lab') {
+            abort(403, 'Anda tidak berwenang menghapus booking ini');
+        }
+
+        // Teknisi hanya bisa hapus booking di lab mereka
+        if ($user->role === 'teknisi' && $user->lab_name !== $booking->lab_name) {
+            abort(403, 'Anda tidak dapat menghapus booking untuk laboratorium ini');
+        }
+
+        // Cek apakah booking sudah confirmed (bisa dihapus atau perlu warning?)
+        if ($booking->isConfirmed()) {
+            return back()->withErrors(['error' => '⚠️ Booking sudah dikonfirmasi. Pembatalan akan dicatat di log sistem.']);
+        }
+
+        // Log sebelum hapus
+        $deletedByRole = $user->role === 'admin' ? 'Admin' :
+                        ($user->isKalab() || $user->role === 'ketua_lab' ? 'Ka Lab' : 'Teknisi');
+
+        Log::info('Booking deleted', [
+            'booking_id' => $booking->id,
+            'deleted_by_role' => $deletedByRole,
+            'reason' => 'Dihapus oleh staff',
+        ]);
+
+        $booking->delete();
+
+        return redirect()->back()
+            ->with('success', '✅ Booking berhasil dihapus!');
+    }
+
+    /**
+     * ⚠️ NEW: Download booking form (PDF) - Setelah di-acc Kalab
+     */
+    public function downloadFormAfterApproved(Booking $booking)
+    {
+        $user = Auth::user();
+
+        // Permission: Hanya yang bisa approve dan booking itu sudah confirmed
+        if (!$user->isAdmin() && !$user->isKalab() && $user->role !== 'ketua_lab') {
+            abort(403, 'Anda tidak berwenang mengunduh formulir');
+        }
+
+        if (!$booking->isConfirmed()) {
+            return back()->withErrors(['error' => 'Booking belum dikonfirmasi, formulir belum tersedia']);
+        }
+
+        $approvalDate = $booking->approved_at_kalab ?? now();
+
+        // Generate PDF
+        // Pastikan file view ada di resources/views/booking/form-approved.blade.php
+        $pdf = Pdf::loadView('booking.form-approved', compact('booking', 'approvalDate'));
+        $pdf->setPaper('a4', 'portrait');
+
+        $filename = 'Form-Booking-' . str_replace(' ', '-', $booking->lab_name) . '-' . $booking->id . '-' . $booking->booking_date->format('Ymd') . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * OLD: Print booking form (A4 size) - Only for admin, teknisi, and kalab
+     */
+    public function printForm(Booking $booking)
+    {
+        $user = Auth::user();
+
+        // Update authorization untuk support Kalab
+        if (!in_array($user->role, ['admin', 'teknisi', 'ketua_lab']) && !$user->isKalab()) {
+            abort(403, 'Anda tidak berwenang mencetak formulir ini');
+        }
+
+        $approvalDate = $booking->approved_at_kalab ?? now();
+
+        return view('booking.print-form', compact('booking', 'approvalDate'));
+    }
+
+    /**
+     * OLD: Download booking form as PDF
+     */
+    public function downloadPDF(Booking $booking)
+    {
+        $user = Auth::user();
+
+        // Update authorization untuk support Kalab
+        if (!in_array($user->role, ['admin', 'teknisi', 'ketua_lab']) && !$user->isKalab()) {
+            abort(403, 'Anda tidak berwenang mengunduh formulir ini');
+        }
+
+        $approvalDate = $booking->approved_at_kalab ?? now();
+
+        $pdf = Pdf::loadView('booking.print-form', compact('booking', 'approvalDate'));
+        $pdf->setPaper('a4', 'portrait');
+
+        $filename = 'Form-Peminjaman-' . str_replace(' ', '-', $booking->lab_name) . '-' . $booking->id . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Approve booking by Ka Lab (Final approval)
+     */
+    public function approveByKalab(Request $request, Booking $booking)
+    {
+        $user = Auth::user();
+
+        // ✅ UPDATED: Support isKalab() method
+        if (!$user->isKalab() && $user->role !== 'ketua_lab' && !$user->isAdmin()) {
+            abort(403, 'Hanya Ketua Lab atau Admin yang dapat melakukan konfirmasi final');
+        }
+
+        if (!$booking->canApproveByKalab()) {
+            return back()->withErrors(['error' => 'Booking harus disetujui teknisi terlebih dahulu']);
+        }
+
+        $booking->update([
+            'status' => 'confirmed',
+            'approved_by_kalab' => $user->id,
+            'approved_at_kalab' => now(),
+        ]);
+
+        Log::info('Booking confirmed by kalab', [
+            'booking_id' => $booking->id,
+            'kalab_id' => $user->id,
+            'kalab_name' => $user->name,
+        ]);
+
+        return redirect()->route('booking.show', $booking)
+            ->with('success', '🎉 Booking BERHASIL DIKONFIRMASI! Silakan gunakan lab sesuai jadwal.');
     }
 
     /**
@@ -181,19 +402,19 @@ class BookingController extends Controller
                 'phone.required' => 'No. Telepon wajib diisi',
             ]);
 
-            if ($user->name !== $validated['name'] || 
-                $user->nip !== $validated['nip'] || 
+            if ($user->name !== $validated['name'] ||
+                $user->nip !== $validated['nip'] ||
                 $user->phone !== $validated['phone']) {
-                
+
                 $user->update([
                     'name' => $validated['name'],
                     'nip' => $validated['nip'],
                     'phone' => $validated['phone'],
                 ]);
             }
-            
+
             $status = 'pending';
-            
+
         } else {
             $validated = $request->validate([
                 'lab_name' => 'required|string|max:255',
@@ -228,12 +449,38 @@ class BookingController extends Controller
         $startDate = $bookingDate->copy();
         $endDate = $bookingDate->copy()->addDays($validated['duration_days'] - 1);
 
+        // Check time slot conflict (from previous implementation)
+        $startTime = $validated['start_time_custom'] ?? ($validated['start_time'] ?? '07:00');
+        $endTime = $validated['end_time_custom'] ?? ($validated['end_time'] ?? '08:00');
+
+        $conflictCheck = $this->checkTimeSlotConflict(
+            $validated['lab_name'],
+            $validated['booking_date'],
+            $startTime,
+            $endTime
+        );
+
+        if (!$conflictCheck['available']) {
+            Log::warning('Booking rejected due to conflict', [
+                'user_id' => $user->id,
+                'lab' => $validated['lab_name'],
+                'date' => $validated['booking_date'],
+                'time' => "{$startTime} - {$endTime}",
+                'conflict_type' => $conflictCheck['conflict_type'],
+                'conflict_info' => $conflictCheck['conflict_info'],
+            ]);
+
+            return back()->withInput()->withErrors([
+                'booking_date' => "❌ Waktu yang diajukan tidak tersedia. {$conflictCheck['conflict_info']}. Silakan pilih waktu lain.",
+            ]);
+        }
+
         $booking = Booking::create([
             'user_id' => $user->id,
             'lab_name' => $validated['lab_name'],
             'session' => $validated['session'],
-            'start_time' => $validated['start_time_custom'] ?? ($validated['start_time'] ?? null),
-            'end_time' => $validated['end_time_custom'] ?? ($validated['end_time'] ?? null),
+            'start_time' => $startTime,
+            'end_time' => $endTime,
             'booking_date' => $validated['booking_date'],
             'activity' => $validated['activity'] === 'Lainnya'
                 ? ($validated['activity_other'] ?? 'Lainnya')
@@ -252,7 +499,7 @@ class BookingController extends Controller
             'notes' => $validated['equipment_needs'] ?? ($request->input('notes') ?? null),
         ]);
 
-        Log::info('Booking created', [
+        Log::info('Booking created successfully', [
             'booking_id' => $booking->id,
             'user_id' => $user->id,
             'role' => $user->role,
@@ -260,7 +507,7 @@ class BookingController extends Controller
             'status' => $status,
         ]);
 
-        $message = $user->role === 'dosen' 
+        $message = $user->role === 'dosen'
             ? '✅ Peminjaman berhasil diajukan! Menunggu persetujuan teknisi.'
             : '✅ Booking berhasil diajukan! ' . $this->getStatusMessage($status);
 
@@ -372,35 +619,6 @@ class BookingController extends Controller
     }
 
     /**
-     * Approve booking by Ka Lab (Final approval)
-     */
-    public function approveByKalab(Request $request, Booking $booking)
-    {
-        $user = Auth::user();
-
-        if ($user->role !== 'ketua_lab' && $user->role !== 'admin') {
-            abort(403, 'Hanya Ketua Lab atau Admin yang dapat melakukan konfirmasi final');
-        }
-
-        if (!$booking->canApproveByKalab()) {
-            return back()->withErrors(['error' => 'Booking harus disetujui teknisi terlebih dahulu']);
-        }
-
-        $booking->update([
-            'status' => 'confirmed',
-            'approved_by_kalab' => $user->id,
-            'approved_at_kalab' => now(),
-        ]);
-
-        Log::info('Booking confirmed by kalab', [
-            'booking_id' => $booking->id,
-            'kalab_id' => $user->id,
-        ]);
-
-        return back()->with('success', '🎉 Booking BERHASIL DIKONFIRMASI! Silakan gunakan lab sesuai jadwal.');
-    }
-
-    /**
      * Reject booking
      */
     public function reject(Request $request, Booking $booking)
@@ -464,162 +682,84 @@ class BookingController extends Controller
         return back()->with('success', '🗑️ Booking berhasil dibatalkan');
     }
 
-    /**
-     * Print booking form (A4 size) - Only for admin, teknisi, and kalab
-     */
-    public function printForm(Booking $booking)
-    {
-        $user = Auth::user();
-        
-        if (!in_array($user->role, ['admin', 'teknisi', 'ketua_lab'])) {
-            abort(403, 'Anda tidak berwenang mencetak formulir ini');
-        }
-        
-        $approvalDate = $booking->approved_at_kalab ?? now();
-        
-        return view('booking.print-form', compact('booking', 'approvalDate'));
-    }
-
-    /**
-     * Download booking form as PDF
-     */
-    public function downloadPDF(Booking $booking)
-    {
-        $user = Auth::user();
-        
-        if (!in_array($user->role, ['admin', 'teknisi', 'ketua_lab'])) {
-            abort(403, 'Anda tidak berwenang mengunduh formulir ini');
-        }
-        
-        $approvalDate = $booking->approved_at_kalab ?? now();
-        
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('booking.print-form', compact('booking', 'approvalDate'));
-        $pdf->setPaper('a4', 'portrait');
-        
-        $filename = 'Form-Peminjaman-' . str_replace(' ', '-', $booking->lab_name) . '-' . $booking->id . '.pdf';
-        
-        return $pdf->download($filename);
-    }
-
-    // ========================================================================
-    // ROLE-SPECIFIC VIEW METHODS
-    // ========================================================================
-
-    private function mahasiswaView()
-    {
-        $user = Auth::user();
-        $bookings = Booking::where('user_id', $user->id)->orderBy('created_at', 'desc')->paginate(10);
-        $pendingCount = Booking::where('user_id', $user->id)->where('status', 'pending')->count();
-        return view('booking.mahasiswa', compact('bookings', 'pendingCount', 'user'));
-    }
-
-    private function dosenView()
-    {
-        $user = Auth::user();
-        
-        $ownBookings = Booking::where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-
-        $pendingApprovals = Booking::whereHas('user', fn($q) => $q->where('role', 'mahasiswa'))
-            ->where('status', 'pending')
-            ->orderBy('created_at', 'asc')
-            ->paginate(10);
-
-        $stats = [
-            'total' => Booking::where('user_id', $user->id)->count(),
-            'pending' => Booking::where('user_id', $user->id)->where('status', 'pending')->count(),
-            'approved' => Booking::where('user_id', $user->id)->where('status', 'confirmed')->count(),
-            'awaiting_approval' => Booking::whereHas('user', fn($q) => $q->where('role', 'mahasiswa'))
-                ->where('status', 'pending')->count(),
-        ];
-
-        return view('booking.dosen', compact('ownBookings', 'pendingApprovals', 'stats', 'user'));
-    }
-
-    /**
-     * View for Teknisi - Filter by lab assignment
-     */
-    private function teknisiView()
-    {
-        $user = Auth::user();
-        
-        $pendingApprovals = Booking::whereIn('status', ['pending', 'approved_dosen'])
-            ->where('lab_name', $user->lab_name)
-            ->orderBy('created_at', 'asc')
-            ->paginate(10);
-            
-        $allBookings = Booking::where('lab_name', $user->lab_name)
-            ->with('user')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
-            
-        $stats = [
-            'awaiting_approval' => Booking::where('lab_name', $user->lab_name)
-                ->whereIn('status', ['pending', 'approved_dosen'])
-                ->count(),
-            'total_confirmed' => Booking::where('lab_name', $user->lab_name)
-                ->where('status', 'confirmed')
-                ->count(),
-            'total_rejected' => Booking::where('lab_name', $user->lab_name)
-                ->where('status', 'rejected')
-                ->count(),
-            'lab_name' => $user->lab_name,
-        ];
-        
-        return view('booking.teknisi', compact('pendingApprovals', 'allBookings', 'stats', 'user'));
-    }
-
-    /**
-     * View for Ketua Lab
-     */
-    private function kalabView()
-    {
-        $user = Auth::user();
-        
-        $pendingApprovals = Booking::where('status', 'approved_teknisi')
-            ->orderBy('created_at', 'asc')
-            ->paginate(10);
-            
-        $confirmedBookings = Booking::where('status', 'confirmed')
-            ->orderBy('booking_date', 'desc')
-            ->paginate(20);
-            
-        $stats = [
-            'awaiting_final' => Booking::where('status', 'approved_teknisi')->count(),
-            'confirmed_today' => Booking::where('status', 'confirmed')
-                ->whereDate('booking_date', today())
-                ->count(),
-            'total_confirmed' => Booking::where('status', 'confirmed')->count(),
-        ];
-        
-        return view('booking.kalab', compact('pendingApprovals', 'confirmedBookings', 'stats', 'user'));
-    }
-
-    /**
-     * View for Admin
-     */
-    private function adminView()
-    {
-        $user = Auth::user();
-        
-        $allBookings = Booking::with('user')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
-            
-        $stats = [
-            'total' => Booking::count(),
-            'pending' => Booking::where('status', 'pending')->count(),
-            'confirmed' => Booking::where('status', 'confirmed')->count(),
-            'rejected' => Booking::where('status', 'rejected')->count(),
-        ];
-        
-        return view('booking.admin', compact('allBookings', 'stats', 'user'));
-    }
-
     // ========================================================================
     // HELPER METHODS
     // ========================================================================
+
+    private function checkTimeSlotConflict(string $labName, string $bookingDate, string $startTime, string $endTime): array
+    {
+        $startTime = substr($startTime, 0, 5);
+        $endTime = substr($endTime, 0, 5);
+
+        // Check Class Schedule
+        $dayName = Carbon::parse($bookingDate)->isoFormat('dddd');
+        $dayMap = [
+            'Senin' => ['Senin', 'Monday'],
+            'Selasa' => ['Selasa', 'Tuesday'],
+            'Rabu' => ['Rabu', 'Wednesday'],
+            'Kamis' => ['Kamis', 'Thursday'],
+            'Jumat' => ['Jumat', 'Friday'],
+            'Sabtu' => ['Sabtu', 'Saturday'],
+            'Minggu' => ['Minggu', 'Sunday'],
+        ];
+        $possibleDays = $dayMap[$dayName] ?? [$dayName];
+
+        $classSchedules = ClassSchedule::where('lab_name', $labName)
+            ->whereIn('day', $possibleDays)
+            ->where('status', 'active')
+            ->get();
+
+        foreach ($classSchedules as $schedule) {
+            $csStart = substr($schedule->start_time, 0, 5);
+            $csEnd = substr($schedule->end_time, 0, 5);
+
+            if ($startTime < $csEnd && $endTime > $csStart) {
+                return [
+                    'available' => false,
+                    'conflict_type' => 'class_schedule',
+                    'conflict_info' => "Bentrok dengan jadwal kuliah: {$schedule->course_name} (Gol. {$schedule->golongan})",
+                ];
+            }
+        }
+
+        // Check Other Bookings
+        $blockingStatuses = ['confirmed', 'pending', 'approved_dosen', 'approved_teknisi'];
+
+        $conflictingBookings = Booking::where('lab_name', $labName)
+            ->whereDate('booking_date', $bookingDate)
+            ->whereIn('status', $blockingStatuses)
+            ->with('user')
+            ->get();
+
+        foreach ($conflictingBookings as $booking) {
+            $bStart = substr($booking->start_time ?? '', 0, 5);
+            $bEnd = substr($booking->end_time ?? '', 0, 5);
+
+            if (empty($bStart) || empty($bEnd)) continue;
+
+            if ($startTime < $bEnd && $endTime > $bStart) {
+                $statusLabel = match($booking->status) {
+                    'confirmed' => 'sudah dikonfirmasikan',
+                    'pending' => 'sedang menunggu approval dosen',
+                    'approved_dosen' => 'sedang menunggu approval teknisi',
+                    'approved_teknisi' => 'sedang menunggu approval Ka Lab',
+                    default => 'sedang diproses',
+                };
+
+                return [
+                    'available' => false,
+                    'conflict_type' => 'booking',
+                    'conflict_info' => "Bentrok dengan booking oleh {$booking->user->name} yang {$statusLabel}",
+                ];
+            }
+        }
+
+        return [
+            'available' => true,
+            'conflict_type' => null,
+            'conflict_info' => null,
+        ];
+    }
 
     private function getStatusMessage(string $status): string
     {
@@ -627,7 +767,7 @@ class BookingController extends Controller
             'pending' => 'Menunggu persetujuan dosen.',
             'approved_dosen' => 'Disetujui dosen, menunggu teknisi.',
             'approved_teknisi' => 'Disetujui teknisi, menunggu Ka Lab.',
-            'confirmed' => 'Booking dikonfirmasi! ✅',
+            'confirmed' => 'Booking dikonfirmasikan! ✅',
             'rejected' => 'Booking ditolak.',
             default => '',
         };

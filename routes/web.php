@@ -1,16 +1,16 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\AdminController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\LabManagementController;
 use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\ClassScheduleController;
+use App\Http\Controllers\BookingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,9 +22,11 @@ use App\Http\Controllers\Admin\ClassScheduleController;
 // GUEST ROUTES (Belum Login)
 // ============================================================================
 Route::middleware('guest')->group(function () {
+    // Auth
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
 
+    // Password Reset
     Route::prefix('password')->group(function () {
         Route::get('/forgot', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
         Route::post('/forgot', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
@@ -41,15 +43,15 @@ Route::middleware('guest')->group(function () {
 // ============================================================================
 Route::middleware('auth')->group(function () {
 
-    // --- Logout ---
+    // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-    // --- Dashboard ---
+    // Dashboard Main Pages
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/mahasiswa', [DashboardController::class, 'mahasiswa'])->name('dashboard.mahasiswa');
     Route::get('/dashboard/staff', [DashboardController::class, 'staff'])->name('dashboard.staff');
 
-    // --- Profile Routes ---
+    // Profile
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'show'])->name('show');
         Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
@@ -57,33 +59,54 @@ Route::middleware('auth')->group(function () {
     });
 
     // ========================================================================
-    // 📋 BOOKING ROUTES
+    // ✅ AJAX & API Routes (TIDAK ADA DUPLIKASI DI SINI)
+    // Prefix 'dashboard' sudah diterapkan, jadi URL hanya '/toggle-view-mode'
     // ========================================================================
-    Route::middleware(['auth'])->prefix('booking')->name('booking.')->group(function () {
-        Route::get('/', [BookingController::class, 'index'])->name('index');
-        Route::get('/create', [BookingController::class, 'create'])->name('create');
-        Route::get('/create-dosen', [BookingController::class, 'createDosen'])->name('create-dosen');
-        Route::post('/store', [BookingController::class, 'store'])->name('store');
-        Route::get('/search-users', [BookingController::class, 'searchUsers'])->name('search-users');
-        
-        // ✅ PRINT & PDF ROUTES
-        Route::get('/{booking}/print', [BookingController::class, 'printForm'])->name('print');
-        Route::get('/{booking}/print-form', [BookingController::class, 'printForm'])->name('print-form');
-        Route::get('/{booking}/download-pdf', [BookingController::class, 'downloadPDF'])->name('download-pdf');
-        
-        // Approval routes (URUTAN PENTING: sebelum route {booking})
-        Route::post('/{booking}/approve-dosen', [BookingController::class, 'approveByDosen'])->name('approve-dosen');
-        Route::post('/{booking}/approve-teknisi', [BookingController::class, 'approveByTeknisi'])->name('approve-teknisi');
-        Route::post('/{booking}/approve-kalab', [BookingController::class, 'approveByKalab'])->name('approve-kalab');
-        
-        // Other routes
-        Route::get('/{booking}', [BookingController::class, 'show'])->name('show');
-        Route::post('/{booking}/reject', [BookingController::class, 'reject'])->name('reject');
-        Route::post('/{booking}/cancel', [BookingController::class, 'cancel'])->name('cancel');
+        // ✅ BENAR (Tambahkan ->name('dashboard.') di sini)
+    Route::prefix('dashboard')->name('dashboard.')->group(function () {
+        Route::post('/toggle-view-mode', [DashboardController::class, 'toggleViewMode'])->name('toggle-view-mode');
+        Route::post('/schedule-by-date', [DashboardController::class, 'getScheduleByDate'])->name('schedule-by-date');
     });
 
     // ========================================================================
-    // 👨‍💼 ADMIN ROUTES (Hanya untuk role admin)
+    // 📋 BOOKING ROUTES
+    // ========================================================================
+    Route::prefix('booking')->name('booking.')->group(function () {
+
+        // Index
+        Route::get('/', [BookingController::class, 'index'])->name('index');
+
+        // Create Forms
+        Route::get('/create', [BookingController::class, 'create'])->name('create');
+        Route::get('/dosen-create', [BookingController::class, 'createDosen'])->name('create-dosen');
+
+        // Store
+        Route::post('/store', [BookingController::class, 'store'])->name('store');
+
+        // Search Users
+        Route::get('/search-users', [BookingController::class, 'searchUsers'])->name('search-users');
+
+        // Print & PDF
+        Route::get('/{booking}/print-form', [BookingController::class, 'printForm'])->name('print-form');
+        Route::get('/{booking}/download-pdf', [BookingController::class, 'downloadPDF'])->name('download-pdf');
+        Route::get('/{booking}/download-approved', [BookingController::class, 'downloadFormAfterApproved'])->name('download-approved');
+
+        // Approvals (PENTING: Letakkan SEBELUM generic route agar prioritasnya lebih tinggi)
+        Route::post('/{booking}/approve-dosen', [BookingController::class, 'approveByDosen'])->name('approve-dosen');
+        Route::post('/{booking}/approve-teknisi', [BookingController::class, 'approveByTeknisi'])->name('approve-teknisi');
+        Route::post('/{booking}/approve-kalab', [BookingController::class, 'approveByKalab'])->name('approve-kalab');
+
+        // Detail
+        Route::get('/{booking}', [BookingController::class, 'show'])->name('show');
+
+        // Actions
+        Route::post('/{booking}/reject', [BookingController::class, 'reject'])->name('reject');
+        Route::post('/{booking}/cancel', [BookingController::class, 'cancel'])->name('cancel');
+        Route::delete('/{booking}', [BookingController::class, 'destroy'])->name('destroy');
+    });
+
+    // ========================================================================
+    // 👨‍💼 ADMIN ROUTES (Middleware: admin)
     // ========================================================================
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
 
@@ -99,7 +122,11 @@ Route::middleware('auth')->group(function () {
             Route::get('/{user}/edit', [UserManagementController::class, 'edit'])->name('edit');
             Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
             Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
+
+            // Additional Tools
             Route::post('/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->name('reset-password');
+            Route::post('/transfer-kalab', [UserManagementController::class, 'transferKalab'])->name('transfer-kalab');
+            Route::post('/{user}/toggle-kalab', [UserManagementController::class, 'toggleKalabStatus'])->name('toggle-kalab');
         });
 
         // Lab Management
@@ -123,7 +150,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/{booking}/cancel', [ScheduleController::class, 'cancel'])->name('cancel');
         });
 
-        // Class Schedule Management (Jadwal Kuliah)
+        // Class Schedule Management
         Route::prefix('class-schedules')->name('class-schedules.')->group(function () {
             Route::get('/', [ClassScheduleController::class, 'index'])->name('index');
             Route::get('/create', [ClassScheduleController::class, 'create'])->name('create');
@@ -133,15 +160,12 @@ Route::middleware('auth')->group(function () {
             Route::put('/{classSchedule}', [ClassScheduleController::class, 'update'])->name('update');
             Route::delete('/{classSchedule}', [ClassScheduleController::class, 'destroy'])->name('destroy');
         });
-
     });
-
 });
 
 // ============================================================================
 // FALLBACK & PUBLIC ROUTES
 // ============================================================================
-
 Route::get('/', function () {
     return redirect()->route('login');
 });
