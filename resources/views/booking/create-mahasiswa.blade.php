@@ -1,37 +1,42 @@
 @extends('layouts.app')
 
-@section('title', 'Form Peminjaman Laboratorium - Dosen')
+@section('title', 'Form Booking Laboratorium - Mahasiswa')
 
 @section('content')
 <div class="max-w-4xl mx-auto">
 
     <!-- Header -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">📚 Form Peminjaman Laboratorium</h1>
+        <h1 class="text-3xl font-bold text-gray-800">📅 Form Booking Laboratorium</h1>
         <p class="text-gray-600">Ajukan permohonan penggunaan laboratorium untuk kegiatan akademik</p>
     </div>
 
-    <!-- INFO: Alur Persetujuan untuk Dosen -->
-    <div class="mb-6 p-4 bg-green-50 border border-green-300 rounded-lg">
-        <h4 class="font-semibold text-green-800 mb-2">📋 Alur Persetujuan Booking Dosen</h4>
-        <div class="flex items-center gap-2 text-sm text-green-700">
+    <!-- INFO: Alur Persetujuan untuk Mahasiswa -->
+    <div class="mb-6 p-4 bg-blue-50 border border-blue-300 rounded-lg">
+        <h4 class="font-semibold text-blue-800 mb-2">📋 Alur Persetujuan Booking Mahasiswa</h4>
+        <div class="flex items-center gap-2 text-sm text-blue-700 flex-wrap">
             <span class="flex items-center gap-1">
-                <span class="w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+                <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+                Dosen
+            </span>
+            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            <span class="flex items-center gap-1">
+                <span class="w-6 h-6 rounded-full bg-blue-200 text-blue-800 flex items-center justify-center text-xs font-bold">2</span>
                 Teknisi
             </span>
-            <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
             <span class="flex items-center gap-1">
-                <span class="w-6 h-6 rounded-full bg-green-200 text-green-800 flex items-center justify-center text-xs font-bold">2</span>
+                <span class="w-6 h-6 rounded-full bg-blue-200 text-blue-800 flex items-center justify-center text-xs font-bold">3</span>
                 Ka Lab
             </span>
-            <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
             <span class="flex items-center gap-1">
-                <span class="w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center text-xs font-bold">✓</span>
+                <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">✓</span>
                 Dikonfirmasi
             </span>
         </div>
-        <p class="mt-2 text-xs text-green-600">
-            ✅ Sebagai dosen, booking Anda hanya perlu disetujui oleh Teknisi dan Ka Lab sebelum dikonfirmasi.
+        <p class="mt-2 text-xs text-blue-600">
+            ✅ Booking Anda akan melalui 3 tahap persetujuan (Dosen → Teknisi → Ka Lab) sebelum dikonfirmasi.
         </p>
     </div>
 
@@ -55,31 +60,53 @@
     <form action="{{ route('booking.store') }}" method="POST" class="bg-white rounded-xl shadow-lg p-8">
         @csrf
 
-        <!-- SECTION 1: Data Dosen Pemohon (3 Input Wajib) -->
+        <!-- SECTION 1: Data Mahasiswa Pemohon -->
         <div class="mb-8 pb-6 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">👨‍🏫 Data Dosen Pemohon</h3>
-            
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">👤 Data Mahasiswa Pemohon</h3>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Nama Lengkap -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap <span class="text-red-500">*</span></label>
-                    <input type="text" name="name" required maxlength="255"
-                           value="{{ old('name', $user->name) }}"
-                           placeholder="Masukkan nama lengkap dengan gelar"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('name') border-red-500 @enderror">
-                    @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap</label>
+                    <input type="text" value="{{ $user->name }}" disabled
+                           class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-600">
                 </div>
 
-                <!-- NIP -->
+                <!-- NIM -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">NIP <span class="text-red-500">*</span></label>
-                    <input type="text" name="nip" required maxlength="18" pattern="\d{18}"
-                           value="{{ old('nip', $user->nip ?? '') }}"
-                           placeholder="Contoh: 198501012010011001"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('nip') border-red-500 @enderror"
-                           oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                    @error('nip') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                    <p class="mt-1 text-xs text-gray-500">18 digit Nomor Induk Pegawai</p>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">NIM</label>
+                    <input type="text" value="{{ $user->nim ?? '-' }}" disabled
+                           class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-600">
+                    <p class="mt-1 text-xs text-gray-500">Nomor Induk Mahasiswa</p>
+                </div>
+
+                <!-- Program Studi -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Program Studi</label>
+                    <input type="text" name="prodi" value="{{ $user->prodi ?? 'Teknik Informatika' }}" readonly
+                           class="w-full px-4 py-3 bg-blue-50 border border-blue-300 rounded-lg text-blue-800 font-medium">
+                    <p class="mt-1 text-xs text-gray-500">Otomatis dari data akun</p>
+                </div>
+
+                <!-- Golongan -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Golongan <span class="text-red-500">*</span></label>
+                    <select name="golongan" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('golongan') border-red-500 @enderror">
+                        <option value="">-- Pilih Golongan --</option>
+                        <option value="A" {{ old('golongan', $user->golongan ?? '') == 'A' ? 'selected' : '' }}>A</option>
+                        <option value="B" {{ old('golongan', $user->golongan ?? '') == 'B' ? 'selected' : '' }}>B</option>
+                        <option value="C" {{ old('golongan', $user->golongan ?? '') == 'C' ? 'selected' : '' }}>C</option>
+                    </select>
+                    @error('golongan') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    <p class="mt-1 text-xs text-gray-500">Golongan praktikum Anda</p>
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email Institusi</label>
+                    <input type="email" value="{{ $user->email }}" disabled
+                           class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-600">
                 </div>
 
                 <!-- No. Telepon -->
@@ -91,76 +118,83 @@
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('phone') border-red-500 @enderror">
                     @error('phone') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
-
-                <!-- Email (Readonly) -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Email Institusi</label>
-                    <input type="email" value="{{ $user->email }}" disabled
-                           class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-600">
-                    <p class="mt-1 text-xs text-gray-500">Email dari akun sistem (tidak dapat diubah)</p>
-                </div>
             </div>
         </div>
 
-        <!-- SECTION 2: Detail Peminjaman -->
+        <!-- SECTION 2: Detail Booking -->
         <div class="mb-8 pb-6 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">🏢 Detail Peminjaman Laboratorium</h3>
-            
-            <!-- Toggle: Dengan Mahasiswa -->
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">🏢 Detail Booking Laboratorium</h3>
+
+            <!-- Toggle: Individu / Kelompok -->
             <div class="mb-6 p-4 bg-gray-50 rounded-lg">
                 <label class="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" name="with_students" id="withStudentsToggle" value="1" 
+                    <input type="checkbox" name="is_group" id="isGroupToggle" value="1"
                            class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                           {{ old('with_students') ? 'checked' : '' }}>
-                    <span class="font-medium text-gray-700">Dengan Peserta Mahasiswa</span>
+                           {{ old('is_group') ? 'checked' : '' }}>
+                    <span class="font-medium text-gray-700">Booking Kelompok</span>
                 </label>
                 <p class="mt-2 text-sm text-gray-500 ml-8">
-                    Centang jika peminjaman melibatkan mahasiswa sebagai peserta kegiatan.
+                    Centang jika booking untuk kelompok. Jika tidak, booking untuk individu.
                 </p>
             </div>
 
-            <!-- Daftar Mahasiswa Peserta -->
-            <div id="studentsSection" class="{{ old('with_students') ? '' : 'hidden' }} mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h4 class="font-medium text-blue-800 mb-3">👥 Daftar Mahasiswa Peserta</h4>
-                
+            <!-- Anggota Kelompok -->
+            <div id="groupSection" class="{{ old('is_group') ? '' : 'hidden' }} mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 class="font-medium text-blue-800 mb-3">👥 Anggota Kelompok</h4>
+
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Cari Mahasiswa (by NIM/Nama)</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Cari Anggota (by NIM/Nama)</label>
                     <div class="relative">
-                        <input type="text" id="studentSearch" placeholder="Ketik NIM atau nama mahasiswa..." 
+                        <input type="text" id="memberSearch" placeholder="Ketik NIM atau nama..."
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <div id="studentSearchResults" class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto hidden"></div>
+                        <div id="searchResults" class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto hidden"></div>
                     </div>
                     <p class="mt-1 text-xs text-gray-500">Minimal 2 karakter untuk mencari</p>
                 </div>
 
-                <div id="selectedStudents" class="space-y-2">
-                    @if(old('students'))
-                        @foreach(old('students') as $studentId)
+                <div id="selectedMembers" class="space-y-2">
+                    @if(old('members'))
+                        @foreach(old('members') as $memberId)
                             @php
-                                $student = $students->firstWhere('id', $studentId);
+                                $member = $students->firstWhere('id', $memberId);
                             @endphp
-                            @if($student)
-                            <div class="flex items-center justify-between p-2 bg-white rounded border border-blue-200">
+                            @if($member)
+                            <div class="flex items-center justify-between p-2 bg-white rounded border border-blue-200" id="member-{{ $memberId }}">
                                 <div class="flex items-center gap-2">
                                     <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">
-                                        {{ substr($student->name, 0, 1) }}
+                                        {{ substr($member->name, 0, 1) }}
                                     </div>
                                     <div>
-                                        <div class="font-medium text-gray-800">{{ $student->name }}</div>
-                                        <div class="text-xs text-gray-500">{{ $student->nim ?? 'N/A' }}</div>
+                                        <div class="font-medium text-gray-800">{{ $member->name }}</div>
+                                        <div class="text-xs text-gray-500">{{ $member->nim ?? 'N/A' }}</div>
                                     </div>
                                 </div>
-                                <button type="button" onclick="removeStudent({{ $student->id }})" class="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded">
+                                <button type="button" onclick="removeMember({{ $member->id }})" class="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                     </svg>
                                 </button>
-                                <input type="hidden" name="students[]" value="{{ $student->id }}">
+                                <input type="hidden" name="members[]" value="{{ $member->id }}">
                             </div>
                             @endif
                         @endforeach
                     @endif
                 </div>
+            </div>
+
+            <!-- Dosen Pembimbing -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Dosen Pembimbing (Opsional)</label>
+                <select name="supervisor_id"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('supervisor_id') border-red-500 @enderror">
+                    <option value="">-- Pilih Dosen Pembimbing --</option>
+                    @foreach($dosens as $dosen)
+                        <option value="{{ $dosen->id }}" {{ old('supervisor_id') == $dosen->id ? 'selected' : '' }}>
+                            {{ $dosen->name }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('supervisor_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <!-- Laboratorium -->
@@ -203,7 +237,7 @@
                             $currentSession = old('session') ?? $prefilled['session'] ?? '';
                         @endphp
                         @foreach($sessionOptions as $sessionOption)
-                            <option value="{{ $sessionOption }}" 
+                            <option value="{{ $sessionOption }}"
                                     {{ $currentSession === $sessionOption ? 'selected' : '' }}>
                                 {{ $sessionOption }}
                             </option>
@@ -223,7 +257,7 @@
                 </div>
             </div>
 
-            <!-- Durasi & Tanggal Range (Readonly - Auto-calculated) -->
+            <!-- Durasi & Tanggal Range -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Durasi -->
                 <div>
@@ -232,7 +266,7 @@
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('duration_days') border-red-500 @enderror">
                 </div>
 
-                <!-- Start Date (Readonly - Auto-calculated) -->
+                <!-- Start Date (Readonly) -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai</label>
                     <input type="date" id="startDate" readonly
@@ -240,7 +274,7 @@
                     <p class="mt-1 text-xs text-gray-500">Sama dengan tanggal booking</p>
                 </div>
 
-                <!-- End Date (Readonly - Auto-calculated) -->
+                <!-- End Date (Readonly) -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Selesai</label>
                     <input type="date" id="endDate" readonly
@@ -250,16 +284,17 @@
             </div>
         </div>
 
-        <!-- SECTION 3: Jenis Kegiatan & Keperluan -->
+        <!-- SECTION 3: Kegiatan & Keperluan -->
         <div class="mb-8 pb-6 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 Jenis Kegiatan & Keperluan</h3>
-            
-            <!-- Activity Type -->
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 Kegiatan & Keperluan</h3>
+
+            <!-- Activity -->
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Kegiatan <span class="text-red-500">*</span></label>
                 <select name="activity" id="activitySelect" required
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('activity') border-red-500 @enderror">
-                    <option value="">-- Pilih Jenis Kegiatan --</option>
+                    <option value="">-- Pilih Kegiatan --</option>
+                    {{-- ✅ FIX: Iterasi $activities langsung, bukan $activities['mahasiswa'] --}}
                     @foreach($activities as $activity)
                         <option value="{{ $activity }}" {{ old('activity') == $activity ? 'selected' : '' }}>
                             {{ $activity }}
@@ -274,55 +309,46 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">Sebutkan Kegiatan Lainnya <span class="text-red-500">*</span></label>
                 <input type="text" name="activity_other" maxlength="255"
                        value="{{ old('activity_other') }}"
-                       placeholder="Contoh: Workshop Machine Learning untuk Prodi TI"
+                       placeholder="Contoh: Workshop Machine Learning"
                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('activity_other') border-red-500 @enderror">
                 @error('activity_other') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <!-- Purpose -->
             <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Deskripsi Kegiatan <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Keperluan / Deskripsi <span class="text-red-500">*</span></label>
                 <textarea name="purpose" required rows="4" maxlength="1000"
-                          placeholder="Jelaskan detail kegiatan, mata kuliah, tujuan pembelajaran, dan kebutuhan peralatan..."
+                          placeholder="Jelaskan keperluan penggunaan laboratorium secara detail..."
                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('purpose') border-red-500 @enderror">{{ old('purpose') }}</textarea>
                 @error('purpose') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 <p class="mt-1 text-xs text-gray-500">Maksimal 1000 karakter</p>
-            </div>
-
-            <!-- Equipment Needs -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Kebutuhan Peralatan (Opsional)</label>
-                <textarea name="equipment_needs" rows="3" maxlength="500"
-                          placeholder="Sebutkan peralatan khusus yang dibutuhkan (jika ada)..."
-                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">{{ old('equipment_needs') }}</textarea>
-                <p class="mt-1 text-xs text-gray-500">Contoh: Proyektor, sound system, komputer dengan software khusus</p>
             </div>
         </div>
 
         <!-- SECTION 4: Pernyataan Persetujuan -->
         <div class="mb-8 pb-6 border-b border-gray-200">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 Pernyataan Persetujuan</h3>
-            
+
             <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-6">
-                <p class="text-sm text-gray-700 mb-4 font-medium">Dengan mengajukan permohonan ini, saya selaku dosen menyatakan:</p>
-                
+                <p class="text-sm text-gray-700 mb-4 font-medium">Dengan mengajukan permohonan ini, saya selaku mahasiswa menyatakan:</p>
+
                 <div class="space-y-3 text-sm text-gray-700">
                     <div class="flex items-start gap-3">
                         <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">1</span>
-                        <p><strong>BERTANGGUNG JAWAB PENUH</strong> atas kegiatan yang dilaksanakan dan mematuhi seluruh peraturan penggunaan laboratorium.</p>
+                        <p><strong>BERTANGGUNG JAWAB DAN MEMATUHI ATURAN</strong> yang ditetapkan pihak kampus terkait dengan penggunaan ruangan.</p>
                     </div>
-                    
+
                     <div class="flex items-start gap-3">
                         <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">2</span>
-                        <p><strong>MENGAWASI DAN MEMBIMBING</strong> peserta kegiatan untuk menjaga keteraturan, kebersihan, dan inventaris laboratorium.</p>
+                        <p><strong>BERSEDIA MENJAGA KETERATURAN, KEBERSIHAN, DAN INVENTARIS</strong> ruangan selama melaksanakan kegiatan di dalam ruangan.</p>
                     </div>
-                    
+
                     <div class="flex items-start gap-3">
                         <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">3</span>
-                        <p><strong>BERSEDIA DIKENAKAN SANKSI</strong> apabila terjadi kerusakan fasilitas atau pelanggaran peraturan selama kegiatan berlangsung.</p>
+                        <p><strong>BERSEDIA DIKENAKAN SANKSI</strong> apabila dalam pelaksanaannya dinilai dan terbukti melanggar poin 1 dan poin 2.</p>
                     </div>
                 </div>
-                
+
                 <!-- Checkbox Persetujuan -->
                 <div class="mt-6 p-4 bg-white border border-yellow-400 rounded-lg">
                     <label class="flex items-start gap-3 cursor-pointer">
@@ -341,7 +367,7 @@
 
         <!-- Submit Buttons -->
         <div class="flex justify-end gap-4 pt-6 border-t border-gray-200">
-            <a href="{{ route('booking.index') }}" 
+            <a href="{{ route('booking.index') }}"
                class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-400 transition-colors">
                 Batal
             </a>
@@ -350,7 +376,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                Ajukan Peminjaman
+                Ajukan Booking
             </button>
         </div>
     </form>
@@ -359,9 +385,9 @@
 
 @push('scripts')
 <script>
-// Toggle Students Section
-document.getElementById('withStudentsToggle')?.addEventListener('change', function() {
-    document.getElementById('studentsSection').classList.toggle('hidden', !this.checked);
+// Toggle Group Section
+document.getElementById('isGroupToggle')?.addEventListener('change', function() {
+    document.getElementById('groupSection').classList.toggle('hidden', !this.checked);
 });
 
 // Activity "Lainnya" toggle
@@ -375,7 +401,7 @@ document.getElementById('activitySelect')?.addEventListener('change', function()
     }
 });
 
-// Auto-calculate date range (for display only)
+// Auto-calculate date range
 const bookingDateInput = document.querySelector('[name="booking_date"]');
 const durationInput = document.querySelector('[name="duration_days"]');
 const startDateInput = document.getElementById('startDate');
@@ -384,7 +410,7 @@ const endDateInput = document.getElementById('endDate');
 function calculateDateRange() {
     const bookingDate = bookingDateInput?.value;
     const duration = parseInt(durationInput?.value) || 1;
-    
+
     if (bookingDate && duration) {
         startDateInput.value = bookingDate;
         const start = new Date(bookingDate);
@@ -397,25 +423,25 @@ bookingDateInput?.addEventListener('change', calculateDateRange);
 durationInput?.addEventListener('input', calculateDateRange);
 calculateDateRange();
 
-// Search Students
-const studentSearchInput = document.getElementById('studentSearch');
-const studentSearchResults = document.getElementById('studentSearchResults');
-let studentSearchTimeout;
+// Search Members
+const memberSearchInput = document.getElementById('memberSearch');
+const searchResults = document.getElementById('searchResults');
+let searchTimeout;
 
-studentSearchInput?.addEventListener('input', function() {
-    clearTimeout(studentSearchTimeout);
+memberSearchInput?.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
     const query = this.value.trim();
-    
+
     if (query.length < 2) {
-        studentSearchResults.classList.add('hidden');
+        searchResults.classList.add('hidden');
         return;
     }
-    
-    studentSearchTimeout = setTimeout(async () => {
+
+    searchTimeout = setTimeout(async () => {
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             const url = `{{ route('booking.search-users') }}?query=${encodeURIComponent(query)}&type=student`;
-            
+
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
@@ -424,62 +450,62 @@ studentSearchInput?.addEventListener('input', function() {
                     ...(csrfToken && { 'X-CSRF-TOKEN': csrfToken })
                 }
             });
-            
+
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            
-            const students = await response.json();
-            
-            if (students.length === 0) {
-                studentSearchResults.innerHTML = '<div class="p-3 text-sm text-gray-500">Tidak ada mahasiswa ditemukan</div>';
+
+            const members = await response.json();
+
+            if (members.length === 0) {
+                searchResults.innerHTML = '<div class="p-3 text-sm text-gray-500">Tidak ditemukan</div>';
             } else {
-                studentSearchResults.innerHTML = students.map(student => `
+                searchResults.innerHTML = members.map(member => `
                     <div class="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
-                         onclick="addStudent(${student.id}, '${student.name.replace(/'/g, "\\'")}', '${student.nim || 'N/A'}')">
-                        <div class="font-medium text-gray-800">${student.name}</div>
-                        <div class="text-xs text-gray-500">${student.nim || 'N/A'}</div>
+                         onclick="addMember(${member.id}, '${member.name.replace(/'/g, "\\'")}', '${member.nim || 'N/A'}')">
+                        <div class="font-medium text-gray-800">${member.name}</div>
+                        <div class="text-xs text-gray-500">${member.nim || 'N/A'}</div>
                     </div>
                 `).join('');
             }
-            studentSearchResults.classList.remove('hidden');
+            searchResults.classList.remove('hidden');
         } catch (error) {
-            studentSearchResults.innerHTML = `<div class="p-3 text-sm text-red-500">Error: ${error.message}</div>`;
-            studentSearchResults.classList.remove('hidden');
+            searchResults.innerHTML = `<div class="p-3 text-sm text-red-500">Error: ${error.message}</div>`;
+            searchResults.classList.remove('hidden');
         }
     }, 300);
 });
 
-function addStudent(id, name, nim) {
-    const selectedDiv = document.getElementById('selectedStudents');
-    if (document.querySelector(`[name="students[]"][value="${id}"]`)) {
-        alert('Mahasiswa sudah ditambahkan');
+function addMember(id, name, nim) {
+    const selectedDiv = document.getElementById('selectedMembers');
+    if (document.querySelector(`[name="members[]"][value="${id}"]`)) {
+        alert('Anggota sudah ditambahkan');
         return;
     }
-    
+
     const html = `
-        <div class="flex items-center justify-between p-2 bg-white rounded border border-blue-200" id="student-${id}">
+        <div class="flex items-center justify-between p-2 bg-white rounded border border-blue-200" id="member-${id}">
             <div class="flex items-center gap-2">
                 <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">${name.charAt(0).toUpperCase()}</div>
                 <div><div class="font-medium text-gray-800">${name}</div><div class="text-xs text-gray-500">${nim}</div></div>
             </div>
-            <button type="button" onclick="removeStudent(${id})" class="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded">
+            <button type="button" onclick="removeMember(${id})" class="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
-            <input type="hidden" name="students[]" value="${id}">
+            <input type="hidden" name="members[]" value="${id}">
         </div>
     `;
-    
+
     selectedDiv.insertAdjacentHTML('beforeend', html);
-    studentSearchInput.value = '';
-    studentSearchResults.classList.add('hidden');
+    memberSearchInput.value = '';
+    searchResults.classList.add('hidden');
 }
 
-function removeStudent(id) {
-    document.getElementById(`student-${id}`)?.remove();
+function removeMember(id) {
+    document.getElementById(`member-${id}`)?.remove();
 }
 
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('#studentSearch') && !e.target.closest('#studentSearchResults')) {
-        studentSearchResults?.classList.add('hidden');
+    if (!e.target.closest('#memberSearch') && !e.target.closest('#searchResults')) {
+        searchResults?.classList.add('hidden');
     }
 });
 
@@ -500,5 +526,4 @@ agreementCheckbox?.addEventListener('change', function() {
 });
 </script>
 @endpush
-
 @endsection

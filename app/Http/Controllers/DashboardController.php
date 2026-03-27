@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\Lab;
 use App\Models\Booking;
@@ -21,27 +22,50 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // ✅ PERUBAHAN UTAMA: Kalab sekarang diarahkan ke "Kelola Booking" (booking.index)
-        if ($user->isKalab()) {
-            // Jika ingin ada toggle view, bisa pakai logika ini (Opsional):
-            // $viewMode = session('dashboard_view_mode', 'kalab');
-            //
-            // if ($viewMode === 'schedule') {
-            //     return redirect()->route('dashboard.staff'); // Redirect ke jadwal/slot
-            // } else {
-            //     return redirect()->route('booking.index'); // Default redirect ke daftar booking
-            // }
+        // ====================================================================
+        // 👨‍💼 ADMIN: Redirect ke Admin Dashboard (/admin/dashboard)
+        // ====================================================================
+        if ($user->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
 
-            // Arahkan langsung ke halaman manajemen booking (Daftar Peminjaman)
+        // ====================================================================
+        // 🎓 MAHASISWA: Dashboard khusus mahasiswa
+        // ====================================================================
+        if ($user->isMahasiswa()) {
+            return redirect()->route('dashboard.mahasiswa');
+        }
+
+        // ====================================================================
+        // 👨‍🏫 DOSEN (termasuk yang juga Kalab)
+        // ====================================================================
+        if ($user->isDosen()) {
+            // Jika Dosen juga Kalab, cek preferensi view mode
+            if ($user->isKalab()) {
+                $viewMode = session('dashboard_view_mode', 'schedule');
+                if ($viewMode === 'management') {
+                    return redirect()->route('booking.index');
+                }
+            }
+            return redirect()->route('dashboard.staff');
+        }
+
+        // ====================================================================
+        // 👔 KALAB (yang bukan dosen): Default ke management booking
+        // ====================================================================
+        if ($user->isKalab()) {
             return redirect()->route('booking.index');
         }
 
-        // User lain: redirect berdasarkan role biasa
-        return match($user->role) {
-            'mahasiswa' => redirect()->route('dashboard.mahasiswa'),
-            'dosen', 'ketua_lab', 'teknisi', 'staff', 'admin' => redirect()->route('dashboard.staff'),
-            default => view('dashboard'),
-        };
+        // ====================================================================
+        // 🔧 TEKNISI / 👨‍💼 STAFF / 👨‍💼 KETUA_LAB: Dashboard jadwal
+        // ====================================================================
+        if (in_array($user->role, ['teknisi', 'staff', 'ketua_lab'])) {
+            return redirect()->route('dashboard.staff');
+        }
+
+        // Fallback
+        return view('dashboard');
     }
 
     /**
@@ -49,7 +73,7 @@ class DashboardController extends Controller
      */
     public function mahasiswa()
     {
-        if (Auth::user()->role !== 'mahasiswa') {
+        if (!Auth::user()->isMahasiswa()) {
             abort(403, 'Unauthorized');
         }
 
@@ -58,9 +82,9 @@ class DashboardController extends Controller
     }
 
     /**
-     * Dashboard for Staff (Dosen, Teknisi, Ka Lab, Admin) - Untuk Tampilan Jadwal
+     * Dashboard for Staff (Dosen, Teknisi, Ka Lab, Admin) - Dengan Stats + Grafik Analytics
      */
-    public function staff()
+    public function staff(Request $request)
     {
         $user = Auth::user();
         $allowedRoles = ['dosen', 'ketua_lab', 'teknisi', 'staff', 'admin'];
@@ -69,15 +93,220 @@ class DashboardController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // ✅ Detect view mode untuk Kalab (Jika Kalab ingin melihat jadwal slot saja tanpa approve)
-        $isKalabView = $user->isKalab() && session('dashboard_view_mode', 'kalab') === 'kalab';
-        $selectedDate = request('date');
+        // ✅ Detect view mode untuk Kalab
+        $isKalabView = $user->isKalab() && session('dashboard_view_mode', 'schedule') === 'management';
+        $selectedDate = $request->get('date');
 
-        return $this->getDashboardData('dashboard.staff', $selectedDate, $isKalabView);
+        // ========================================================================
+        // ✅ STATS: Berdasarkan Role (Kalab = semua lab, Teknisi = lab sendiri)
+        // ========================================================================
+        $stats = [];
+        $chartLabLabels = [];
+        $chartLabData = [];
+        $chartDayLabels = [];
+        $chartDayData = [];
+        $chartActivityLabels = [];
+        $chartActivityData = [];
+        $chartBorrowerLabels = [];
+        $chartBorrowerData = [];
+        $chartBorrowerRoles = [];
+
+        // Scope query berdasarkan role
+        $bookingQuery = Booking::query();
+        $classQuery = ClassSchedule::query();
+        $labScope = null;
+
+        if ($user->isKalab() || $user->role === 'ketua_lab') {
+            // 🔹 KALAB: Semua lab
+            $labScope = null;
+        } elseif ($user->isTeknisi() && !empty($user->lab_name)) {
+            // 🔹 TEKNISI: Hanya lab sendiri
+            $labScope = $user->lab_name;
+            $bookingQuery->where('lab_name', $labScope);
+            $classQuery->where('lab_name', $labScope);
+        }
+
+        // ------------------------------------------------------------------------
+        // 📊 BASIC STATS
+        // ------------------------------------------------------------------------
+        $stats = [
+            'total_labs' => $labScope ? 1 : Lab::where('status', 'active')->count(),
+            'active_courses' => $classQuery->where('status', 'active')->count(),
+            'bookings_today' => (clone $bookingQuery)->whereDate('booking_date', today())->count(),
+            'bookings_this_month' => (clone $bookingQuery)
+                ->whereMonth('booking_date', now()->month)
+                ->whereYear('booking_date', now()->year)
+                ->count(),
+            'pending_count' => (clone $bookingQuery)->where('status', 'pending')->count(),
+            'approved_dosen_count' => (clone $bookingQuery)->where('status', 'approved_dosen')->count(),
+            'approved_teknisi_count' => (clone $bookingQuery)->where('status', 'approved_teknisi')->count(),
+            'confirmed_count' => (clone $bookingQuery)->where('status', 'confirmed')->count(),
+            'bookings_this_week' => (clone $bookingQuery)
+                ->whereBetween('booking_date', [now()->startOfWeek(), now()->endOfWeek()])
+                ->count(),
+            'bookings_current_month' => (clone $bookingQuery)
+                ->whereMonth('booking_date', now()->month)
+                ->whereYear('booking_date', now()->year)
+                ->count(),
+            'bookings_last_month' => (clone $bookingQuery)
+                ->whereMonth('booking_date', now()->subMonth()->month)
+                ->whereYear('booking_date', now()->subMonth()->year)
+                ->count(),
+        ];
+
+        // ------------------------------------------------------------------------
+        // 📈 CHART 1: Lab Paling Sering Dipinjam (Bar Chart) - Last 30 days
+        // ------------------------------------------------------------------------
+        $labAnalytics = (clone $bookingQuery)
+            ->select('lab_name', DB::raw('count(*) as total'))
+            ->whereDate('booking_date', '>=', now()->subDays(30))
+            ->where('status', 'confirmed')
+            ->groupBy('lab_name')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        $chartLabLabels = $labAnalytics->pluck('lab_name')->toArray();
+        $chartLabData = $labAnalytics->pluck('total')->toArray();
+
+        // ------------------------------------------------------------------------
+        // 📈 CHART 2: Hari Paling Banyak Dipilih (Pie Chart) - All confirmed
+        // ------------------------------------------------------------------------
+        $dayAnalytics = (clone $bookingQuery)
+            ->selectRaw('DAYNAME(booking_date) as day_name, COUNT(*) as total')
+            ->where('status', 'confirmed')
+            ->groupBy('day_name')
+            ->orderByRaw('FIELD(day_name, "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")')
+            ->get();
+
+        $dayMap = [
+            'Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu', 'Sunday' => 'Minggu'
+        ];
+        $chartDayLabels = $dayAnalytics->map(fn($d) => $dayMap[$d->day_name] ?? $d->day_name)->toArray();
+        $chartDayData = $dayAnalytics->pluck('total')->toArray();
+
+        // ------------------------------------------------------------------------
+        // 📈 CHART 3: Jenis Kegiatan Peminjaman (Doughnut) - Last 3 months
+        // ------------------------------------------------------------------------
+        $activityAnalytics = (clone $bookingQuery)
+            ->select('activity', DB::raw('count(*) as total'))
+            ->where('status', 'confirmed')
+            ->whereDate('booking_date', '>=', now()->subDays(90))
+            ->groupBy('activity')
+            ->orderByDesc('total')
+            ->limit(6)
+            ->get();
+
+        $chartActivityLabels = $activityAnalytics->pluck('activity')->toArray();
+        $chartActivityData = $activityAnalytics->pluck('total')->toArray();
+
+        // ------------------------------------------------------------------------
+        // 📈 CHART 4: Top Peminjam (Horizontal Bar) - Last 3 months
+        // ------------------------------------------------------------------------
+        $topBorrowers = (clone $bookingQuery)
+            ->select('user_id', DB::raw('count(*) as total'))
+            ->where('status', 'confirmed')
+            ->whereDate('booking_date', '>=', now()->subDays(90))
+            ->groupBy('user_id')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->with('user:id,name,role')
+            ->get();
+
+        $chartBorrowerLabels = $topBorrowers->map(fn($b) => $b->user?->name ?? 'Unknown')->toArray();
+        $chartBorrowerData = $topBorrowers->pluck('total')->toArray();
+        $chartBorrowerRoles = $topBorrowers->map(fn($b) => $b->user?->role ?? 'unknown')->toArray();
+
+        // ========================================================================
+        // ✅ SCHEDULE DATA
+        // ========================================================================
+        config(['app.timezone' => 'Asia/Jakarta']);
+        date_default_timezone_set('Asia/Jakarta');
+        Carbon::setLocale('id');
+
+        $currentTime = Carbon::now('Asia/Jakarta');
+        $today = $currentTime->toDateString();
+        $todayName = $currentTime->isoFormat('dddd');
+        $scheduleDate = $selectedDate ?? $today;
+        $scheduleDayName = Carbon::parse($scheduleDate)->isoFormat('dddd');
+
+        // Filter labs berdasarkan role
+        if ($labScope) {
+            $labs = [$labScope];
+        } else {
+            $labs = Lab::where('status', 'active')->orderBy('name')->pluck('name')->toArray();
+            if (empty($labs)) {
+                $labs = [
+                    'Multimedia Cerdas (MMC)',
+                    'Komputasi dan Sistem Jaringan (KSI)',
+                    'Arsitektur dan Jaringan Komputer (AJK)',
+                    'Mobile',
+                    'Rekayasa Perangkat Lunak (RPL)',
+                ];
+            }
+        }
+
+        $sessions = [
+            ['start' => '07:00', 'end' => '08:00', 'name' => 'Sesi 1'],
+            ['start' => '08:00', 'end' => '09:00', 'name' => 'Sesi 2'],
+            ['start' => '09:00', 'end' => '10:00', 'name' => 'Sesi 3'],
+            ['start' => '10:00', 'end' => '11:00', 'name' => 'Sesi 4'],
+            ['start' => '11:00', 'end' => '13:00', 'name' => 'Istirahat', 'is_break' => true],
+            ['start' => '13:00', 'end' => '14:00', 'name' => 'Sesi 5'],
+            ['start' => '14:00', 'end' => '15:00', 'name' => 'Sesi 6'],
+            ['start' => '15:00', 'end' => '16:00', 'name' => 'Sesi 7'],
+            ['start' => '16:00', 'end' => '17:00', 'name' => 'Sesi 8'],
+        ];
+
+        $scheduleData = [];
+        foreach ($labs as $lab) {
+            $sessionsData = [];
+            foreach ($sessions as $session) {
+                $status = $this->getSessionStatusFromDb(
+                    $lab, $session['start'], $session['end'],
+                    $scheduleDate, $scheduleDayName, $today, $todayName,
+                    $isKalabView
+                );
+                $sessionsData[] = [
+                    'no' => count($sessionsData) + 1,
+                    'session' => $session['name'],
+                    'start' => $session['start'],
+                    'end' => $session['end'],
+                    'status' => $status['status'],
+                    'status_label' => $status['label'],
+                    'status_color' => $status['color'],
+                    'is_break' => $session['is_break'] ?? false,
+                    'booking_info' => $status['info'] ?? null,
+                    'booking_id' => $status['booking_id'] ?? null,
+                    'is_expired' => $status['is_expired'] ?? false,
+                    'is_kalab_view' => $isKalabView,
+                ];
+            }
+            $scheduleData[$lab] = $sessionsData;
+        }
+
+        $realtimeDayName = $todayName;
+
+        return view('dashboard.staff', compact(
+            'scheduleData',
+            'currentTime',
+            'labs',
+            'realtimeDayName',
+            'scheduleDayName',
+            'scheduleDate',
+            'isKalabView',
+            'stats',
+            // ✅ Chart data for analytics
+            'chartLabLabels', 'chartLabData',
+            'chartDayLabels', 'chartDayData',
+            'chartActivityLabels', 'chartActivityData',
+            'chartBorrowerLabels', 'chartBorrowerData', 'chartBorrowerRoles'
+        ));
     }
 
     /**
-     * ✅ NEW: Toggle view mode untuk Kalab (AJAX/Form)
+     * ✅ NEW: Toggle view mode untuk Kalab/Dosen+Kalab (AJAX/Form)
      */
     public function toggleViewMode(Request $request)
     {
@@ -91,36 +320,34 @@ class DashboardController extends Controller
         }
 
         $request->validate([
-            'mode' => 'required|in:dosen,kalab,schedule',
+            'mode' => 'required|in:schedule,management',
         ]);
 
-        // Simpan preferensi view Kalab
         session(['dashboard_view_mode' => $request->mode]);
 
-        Log::info('Kalab view mode changed', [
+        Log::info('Dashboard view mode changed', [
             'user_id' => $user->id,
             'name' => $user->name,
+            'role' => $user->role,
+            'is_kalab' => $user->is_kalab,
             'new_mode' => $request->mode,
         ]);
 
-        // Tentukan tujuan redirect berdasarkan mode
-        $redirectRoute = match($request->mode) {
-            'schedule' => route('dashboard.staff'), // Jadwal Slot (Kosong/Penuh)
-            'kalab' => route('booking.index'),      // Daftar Booking (List Request)
-            default => route('booking.index')
-        };
+        $redirectRoute = $request->mode === 'management'
+            ? route('booking.index')
+            : route('dashboard.staff');
 
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
                 'mode' => $request->mode,
                 'redirect' => $redirectRoute,
-                'message' => 'Pengaturan tampilan berhasil diubah',
+                'message' => 'Tampilan dashboard berhasil diubah',
             ]);
         }
 
         return redirect($redirectRoute)
-            ->with('success', 'Pengaturan tampilan berhasil diubah');
+            ->with('success', 'Tampilan dashboard berhasil diubah');
     }
 
     /**
@@ -140,7 +367,6 @@ class DashboardController extends Controller
         $scheduleDate = $selectedDate ? Carbon::parse($selectedDate)->toDateString() : $today;
         $scheduleDayName = Carbon::parse($scheduleDate)->isoFormat('dddd');
 
-        // ✅ KALAB VIEW: Tampilkan semua booking, Dosen biasa: hanya confirmed
         $bookingStatusFilter = $isKalabView
             ? ['pending', 'approved_dosen', 'approved_teknisi', 'confirmed']
             : ['confirmed'];
@@ -207,7 +433,6 @@ class DashboardController extends Controller
             $scheduleData[$lab] = $sessionsData;
         }
 
-        // ✅ Stats untuk Kalab view
         $stats = [];
         if ($isKalabView) {
             $stats = [
@@ -230,16 +455,22 @@ class DashboardController extends Controller
         ));
     }
 
-    /**
-     * ✅ Get session status with Kalab view awareness
-     */
+    // ========================================================================
+    // ✅ HELPER: Get session status untuk jadwal lab
+    // ========================================================================
     private function getSessionStatusFromDb(
         $labName, $startTime, $endTime, $scheduleDate, $scheduleDayName,
         $today, $todayName, $isKalabView = false, $statusFilter = null
     ) {
         $currentTime = Carbon::now('Asia/Jakarta');
         $now = $currentTime->format('H:i');
-        $isToday = ($scheduleDate === $today);
+
+        $scheduleDateObj = Carbon::parse($scheduleDate)->startOfDay();
+        $todayObj = Carbon::parse($today)->startOfDay();
+
+        $isToday = $scheduleDateObj->equalTo($todayObj);
+        $isFutureDate = $scheduleDateObj->greaterThan($todayObj);
+        $isPastDate = $scheduleDateObj->lessThan($todayObj);
 
         $dayMap = [
             'Senin' => ['Senin', 'Monday'],
@@ -264,6 +495,16 @@ class DashboardController extends Controller
             $dbEnd = substr($schedule->end_time, 0, 5);
 
             if ($startTime < $dbEnd && $endTime > $dbStart) {
+                if ($isFutureDate) {
+                    return [
+                        'status' => 'terisi',
+                        'label' => '📚 Terisi - Jadwal Kuliah',
+                        'color' => 'red',
+                        'info' => $schedule->course_name . ' - Gol. ' . $schedule->golongan,
+                        'is_expired' => false,
+                    ];
+                }
+
                 if ($isToday && $now >= $startTime && $now < $endTime) {
                     return [
                         'status' => 'proses',
@@ -273,6 +514,7 @@ class DashboardController extends Controller
                         'is_expired' => false,
                     ];
                 }
+
                 return [
                     'status' => 'terisi',
                     'label' => '📚 Terisi - Jadwal Kuliah',
@@ -333,7 +575,27 @@ class DashboardController extends Controller
             }
         }
 
-        // ✅ 3. Default: Tersedia atau Selesai
+        // ✅ 3. Default: Tersedia / Selesai / Masa Depan
+        if ($isFutureDate) {
+            return [
+                'status' => 'tersedia',
+                'label' => '✅ Tersedia',
+                'color' => 'green',
+                'info' => null,
+                'is_expired' => false,
+            ];
+        }
+
+        if ($isPastDate) {
+            return [
+                'status' => 'selesai',
+                'label' => '⏹️ Selesai',
+                'color' => 'gray',
+                'info' => null,
+                'is_expired' => false,
+            ];
+        }
+
         if ($now >= $startTime && $now < $endTime) {
             return [
                 'status' => 'tersedia',
@@ -366,9 +628,15 @@ class DashboardController extends Controller
      */
     private function isBookingExpired($booking, $scheduleDate, $today): bool
     {
-        if ($scheduleDate >= $today) return false;
+        if (Carbon::parse($scheduleDate)->greaterThanOrEqualTo(Carbon::parse($today))) {
+            return false;
+        }
+
         $finalStatuses = ['confirmed', 'rejected', 'cancelled'];
-        if (in_array($booking->status, $finalStatuses)) return false;
+        if (in_array($booking->status, $finalStatuses)) {
+            return false;
+        }
+
         return true;
     }
 
@@ -442,8 +710,8 @@ class DashboardController extends Controller
         $today = Carbon::now('Asia/Jakarta')->toDateString();
         $todayName = Carbon::now('Asia/Jakarta')->isoFormat('dddd');
 
-        // Filter booking status berdasarkan role user
-        $isKalabView = $user->isKalab() && session('dashboard_view_mode', 'kalab') === 'kalab';
+        $viewMode = session('dashboard_view_mode', 'schedule');
+        $isKalabView = $user->isKalab() && $viewMode === 'management';
         $bookingStatusFilter = $isKalabView
             ? ['pending', 'approved_dosen', 'approved_teknisi', 'confirmed']
             : ['confirmed'];
@@ -498,7 +766,7 @@ class DashboardController extends Controller
             'success' => true,
             'date' => $selectedDate,
             'day_name' => $scheduleDayName,
-            'view_mode' => $isKalabView ? 'kalab' : 'dosen',
+            'view_mode' => $isKalabView ? 'management' : 'schedule',
             'schedule' => $scheduleData,
         ]);
     }

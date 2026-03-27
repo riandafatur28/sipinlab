@@ -16,24 +16,43 @@
             top: 0; left: 0; height: 100vh; width: 16rem;
             background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
             z-index: 50;
-            transition: all 0.3s ease-in-out;
+            transition: transform 0.3s ease-in-out;
             display: flex;
             flex-direction: column;
         }
 
         /* Sidebar Collapsed State (Desktop Only) */
-        .sidebar.collapsed { width: 0; padding: 0; overflow: hidden; }
-        .sidebar.collapsed > * { opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+        @media (min-width: 1024px) {
+            .sidebar.collapsed {
+                transform: translateX(-100%);
+            }
+            .sidebar.collapsed > * {
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.15s;
+            }
+        }
 
         /* Sidebar Edge Handle */
         .sidebar-edge {
-            position: fixed; top: 0; left: 16rem; width: 12px; height: 100vh; cursor: col-resize;
-            z-index: 60; transition: all 0.3s ease-in-out; opacity: 0; display: none;
+            position: fixed;
+            top: 0;
+            left: 16rem;
+            width: 12px;
+            height: 100vh;
+            cursor: col-resize;
+            z-index: 60;
+            transition: all 0.3s ease-in-out;
+            opacity: 0;
+            display: none;
         }
 
         @media (min-width: 1024px) {
             .sidebar-edge { display: block; }
-            .sidebar-edge:hover, .sidebar-edge.active { background: linear-gradient(to right, rgba(59, 130, 246, 0.4), transparent); opacity: 1; }
+            .sidebar-edge:hover, .sidebar-edge.active {
+                background: linear-gradient(to right, rgba(59, 130, 246, 0.4), transparent);
+                opacity: 1;
+            }
             .sidebar.collapsed + .sidebar-edge { left: 0; }
         }
 
@@ -42,63 +61,135 @@
         .sidebar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); }
         .sidebar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 4px; }
 
-        /* Main Content */
-        .main-content { margin-left: 16rem; transition: margin-left 0.3s ease-in-out; display: flex; flex-direction: column; min-height: 100vh; }
-        .main-content.full-width { margin-left: 0; }
-
-        /* Mobile Sidebar Hidden by default */
-        .sidebar.sidebar-hidden { transform: translateX(-100%); }
-        .sidebar.sidebar-visible { transform: translateX(0); }
-
-        /* ======================================== */
-        /* ✨ PERBAIKAN MOBILE RESPONSIVE & TABLE ✨ */
-        /* ======================================== */
-        .table-responsive-wrapper {
-            width: 100%;
-            overflow-x: auto; /* Scroll hanya pada tabel, bukan halaman */
-            -webkit-overflow-scrolling: touch;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        /* Main Content - FIXED */
+        .main-content {
+            margin-left: 16rem;
+            transition: margin-left 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: relative;
+            z-index: 10;
         }
 
-        @media (max-width: 1024px) {
+        .main-content.full-width {
+            margin-left: 0;
+        }
+
+        /* Mobile Sidebar Hidden by default */
+        .sidebar.sidebar-hidden {
+            transform: translateX(-100%);
+        }
+        .sidebar.sidebar-visible {
+            transform: translateX(0);
+        }
+
+        /* ======================================== */
+        /* ✨ PERBAIKAN MOBILE RESPONSIVE ✨ */
+        /* ======================================== */
+        @media (max-width: 1023px) {
             .sidebar {
-                position: absolute; /* Ubah posisi sidebar jadi floating */
+                transform: translateX(-100%);
                 box-shadow: 4px 0 15px rgba(0,0,0,0.2);
-                transition: transform 0.3s ease-in-out;
             }
 
-            /* Tombol menu mobile */
-            .mobile-menu-toggle { display: flex !important; }
+            .sidebar.sidebar-visible {
+                transform: translateX(0);
+            }
 
-            /* Overlay backdrop */
-            .overlay-mobile { display: block !important; }
+            .mobile-menu-toggle {
+                display: flex !important;
+            }
 
-            /* Reset margin saat mobile */
-            .main-content { margin-left: 0 !important; width: 100% !important; }
+            .overlay-mobile {
+                display: none;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            .overlay-mobile.active {
+                display: block;
+                opacity: 1;
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .mobile-menu-toggle {
+                display: none !important;
+            }
         }
 
         /* Keyboard Hint */
         .keyboard-hint {
-            position: fixed; bottom: 20px; right: 20px; background: rgba(30, 41, 59, 0.95);
-            color: white; padding: 10px 16px; border-radius: 10px; font-size: 13px;
-            opacity: 0; transform: translateY(10px); transition: all 0.3s ease;
-            pointer-events: none; z-index: 100; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            display: flex; align-items: center; gap: 8px;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(30, 41, 59, 0.95);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .keyboard-hint.show { opacity: 1; transform: translateY(0); }
-        .keyboard-hint kbd { background: rgba(255, 255, 255, 0.2); padding: 3px 8px; border-radius: 5px; font-family: monospace; font-size: 12px; }
+        .keyboard-hint.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .keyboard-hint kbd {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+        }
 
         /* Text Hiding */
-        .sidebar-text { transition: opacity 0.2s; }
-        .sidebar.collapsed .sidebar-text { opacity: 0; }
+        .sidebar-text {
+            transition: opacity 0.2s;
+        }
+        @media (min-width: 1024px) {
+            .sidebar.collapsed .sidebar-text {
+                opacity: 0;
+            }
+        }
 
         /* Kalab Badge Animation */
-        @keyframes pulse-kalab { 0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); } }
-        .badge-kalab { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.25rem; animation: pulse-kalab 2s infinite; }
+        @keyframes pulse-kalab {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+        }
+        .badge-kalab {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            animation: pulse-kalab 2s infinite;
+        }
 
         /* Role Badges */
-        .badge-role { font-size: 0.7rem; font-weight: 500; padding: 0.15rem 0.5rem; border-radius: 9999px; }
+        .badge-role {
+            font-size: 0.7rem;
+            font-weight: 500;
+            padding: 0.15rem 0.5rem;
+            border-radius: 9999px;
+        }
         .badge-role-mahasiswa { background: #fef3c7; color: #92400e; }
         .badge-role-dosen { background: #dcfce7; color: #166534; }
         .badge-role-teknisi { background: #dbeafe; color: #1e40af; }
@@ -110,33 +201,26 @@
 
     <!-- Mobile Sidebar Overlay -->
     <div id="sidebar-overlay"
-         class="fixed inset-0 bg-black/50 z-40 lg:hidden overlay-mobile hidden"
+         class="fixed inset-0 bg-black/50 z-40 lg:hidden overlay-mobile"
          onclick="handleMobileClose()"></div>
 
     <!-- ✅ Sidebar Edge Handle -->
     <div id="sidebar-edge" class="sidebar-edge hidden lg:block" title="Klik atau hover untuk toggle sidebar"></div>
 
     <div class="flex">
-        <!-- ✅ SIDEBAR (Collapsible) -->
+        <!-- ✅ SIDEBAR (Collapsible) - ✅ FIX: HAPUS sidebar-hidden DARI CLASS DEFAULT -->
         <aside id="sidebar" class="sidebar shadow-xl">
 
             <!-- Logo -->
             <div class="h-16 flex items-center px-6 border-b border-blue-400 flex-shrink-0">
                 <div class="flex items-center gap-2 text-white">
-                    <svg class="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
-                    </svg>
+                    <img src="{{ asset('img/polije.png') }}"
+                     alt="Logo Polije"
+                     class="w-12 h-12 object-contain transition duration-300 hover:scale-110">
                     <span class="text-xl font-bold sidebar-text whitespace-nowrap">SiPinLab</span>
                 </div>
-                <!-- Tombol close mobile (NEW - TAMBAHAN UNTUK MOBILE) -->
+                <!-- Tombol close mobile -->
                 <button onclick="closeSidebarMobile()" class="lg:hidden ml-auto text-white text-xl">✕</button>
-
-                <button onclick="toggleSidebar()" class="lg:hidden ml-auto text-white">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
             </div>
 
             <!-- Navigation -->
@@ -204,7 +288,6 @@
                             <span class="font-medium sidebar-text whitespace-nowrap">Tambah User</span>
                         </a>
 
-                        {{-- ✅ KOREKSI ROUTE DI SINI: admin.users.index --}}
                         <a href="{{ route('admin.users.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-white hover:bg-blue-600 transition-colors">
                             <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
@@ -265,7 +348,6 @@
                             <p class="text-xs text-blue-200 truncate">
                                 {{ ucfirst(Auth::user()->role) }}
                             </p>
-                            {{-- ✅ Badge Kalab --}}
                             @if(Auth::user()->isKalab())
                                 <span class="badge-kalab">👔 Kalab</span>
                             @endif
@@ -293,8 +375,15 @@
             <!-- Top Header -->
             <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30 shadow-sm flex-shrink-0">
 
-                <!-- Spacer -->
-                <div class="w-10 lg:hidden"></div>
+                <!-- Mobile Menu Toggle Button -->
+                <button onclick="toggleSidebar()" class="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg mobile-menu-toggle">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+
+                <!-- Spacer untuk desktop -->
+                <div class="hidden lg:block w-10"></div>
 
                 <div class="flex items-center gap-4 ml-auto">
                     <!-- Notifications -->
@@ -404,146 +493,137 @@
         <kbd>Ctrl</kbd> + <kbd>B</kbd>
     </div>
 
-    <script>
-        // Toggle sidebar (works on mobile AND desktop)
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('main-content');
-            const edge = document.getElementById('sidebar-edge');
-            const overlay = document.getElementById('sidebar-overlay');
+<script>
+    // Toggle sidebar (works on mobile AND desktop)
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const isMobile = window.innerWidth < 1024;
 
-            const isMobile = window.innerWidth < 1024;
-
-            if (isMobile) {
-                // Mode Mobile: Pindah masuk/keluar layar
-                if (sidebar.classList.contains('sidebar-hidden')) {
-                    sidebar.classList.remove('sidebar-hidden');
-                    sidebar.classList.add('sidebar-visible');
-                } else {
-                    sidebar.classList.add('sidebar-hidden');
-                    sidebar.classList.remove('sidebar-visible');
-                }
-
-                overlay?.classList.toggle('hidden');
-            } else {
-                // Mode Desktop: Collapsible
-                sidebar.classList.toggle('collapsed');
-                mainContent.classList.toggle('full-width');
-                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
-            }
-
-            showKeyboardHint();
-        }
-
-        // Fungsi baru untuk mobile close
-        function closeSidebarMobile() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-
-            sidebar.classList.add('sidebar-hidden');
-            sidebar.classList.remove('sidebar-visible');
-            overlay?.classList.add('hidden');
-        }
-
-        // ✅ PERBAIKAN LOGIKA MOBILE CLOSE untuk menghindari layar redem tetap muncul
-        function handleMobileClose() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-
-            // Hanya close jika sidebar sedang terbuka (tidak hidden-mobile)
-            if (!sidebar.classList.contains('sidebar-hidden')) {
-                sidebar.classList.add('sidebar-hidden');
-                overlay.classList.add('hidden');
-            }
-        }
-
-        function showKeyboardHint() {
-            const hint = document.getElementById('keyboard-hint');
-            hint.classList.add('show');
-            setTimeout(() => hint.classList.remove('show'), 2500);
-        }
-
-        function toggleUserDropdown() {
-            document.getElementById('user-dropdown').classList.toggle('hidden');
-        }
-
-        document.addEventListener('click', function(event) {
-            const dropdown = document.getElementById('user-dropdown');
-            const button = event.target.closest('button');
-            if (!button || !button.onclick?.toString().includes('toggleUserDropdown')) {
-                dropdown?.classList.add('hidden');
-            }
-        });
-
-        document.getElementById('sidebar-overlay')?.addEventListener('click', handleMobileClose);
-
-        document.addEventListener('keydown', function(event) {
-            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'b') {
-                const target = event.target;
-                if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA' && !target.isContentEditable) {
-                    event.preventDefault();
-                    toggleSidebar();
-                }
-            }
-        });
-
-        document.getElementById('sidebar-edge')?.addEventListener('click', toggleSidebar);
-
-        sidebarEdge = document.getElementById('sidebar-edge');
-        sidebarEdge?.addEventListener('mouseenter', function() {
-            showKeyboardHint();
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('main-content');
-            const overlay = document.getElementById('sidebar-overlay');
-            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-
-            // Pastikan default state benar saat load
-            if (isCollapsed && window.innerWidth >= 1024) {
-                sidebar.classList.add('collapsed');
-                mainContent.classList.add('full-width');
-            } else if (window.innerWidth < 1024) {
-                // Default mobile hidden
-                sidebar.classList.add('sidebar-hidden');
-                overlay.classList.add('hidden');
-            }
-
-            if (!sessionStorage.getItem('sidebarHintShown')) {
-                setTimeout(() => {
-                    showKeyboardHint();
-                    sessionStorage.setItem('sidebarHintShown', 'true');
-                }, 1500);
-            }
-        });
-
-        window.addEventListener('resize', function() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('main-content');
-            const overlay = document.getElementById('sidebar-overlay');
-
-            if (window.innerWidth >= 1024) {
-                // Desktop mode
+        if (isMobile) {
+            // Mode Mobile: Toggle visibility
+            if (sidebar.classList.contains('sidebar-hidden')) {
                 sidebar.classList.remove('sidebar-hidden');
-                overlay.classList.add('hidden');
-
-                const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-                if (isCollapsed) {
-                    sidebar.classList.add('collapsed');
-                    mainContent.classList.add('full-width');
-                } else {
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('full-width');
-                }
+                sidebar.classList.add('sidebar-visible');
+                overlay?.classList.add('active');
             } else {
-                // Mobile mode
-                sidebar.classList.add('sidebar-hidden');
-                mainContent.classList.remove('full-width');
-                overlay.classList.add('hidden');
+                closeSidebarMobile();
             }
-        });
-    </script>
+        } else {
+            // Mode Desktop: Toggle collapsed
+            sidebar.classList.toggle('collapsed');
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        }
+
+        showKeyboardHint();
+    }
+
+    // Fungsi untuk close sidebar mobile
+    function closeSidebarMobile() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+
+        sidebar.classList.remove('sidebar-visible');
+        sidebar.classList.add('sidebar-hidden');
+        overlay?.classList.remove('active');
+    }
+
+    // Handle mobile close via overlay click
+    function handleMobileClose() {
+        closeSidebarMobile();
+    }
+
+    function showKeyboardHint() {
+        const hint = document.getElementById('keyboard-hint');
+        hint.classList.add('show');
+        setTimeout(() => hint.classList.remove('show'), 2500);
+    }
+
+    function toggleUserDropdown() {
+        document.getElementById('user-dropdown').classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('user-dropdown');
+        const button = event.target.closest('button');
+        if (!button || !button.onclick?.toString().includes('toggleUserDropdown')) {
+            dropdown?.classList.add('hidden');
+        }
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'b') {
+            const target = event.target;
+            if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA' && !target.isContentEditable) {
+                event.preventDefault();
+                toggleSidebar();
+            }
+        }
+    });
+
+    document.getElementById('sidebar-edge')?.addEventListener('click', toggleSidebar);
+
+    const sidebarEdge = document.getElementById('sidebar-edge');
+    sidebarEdge?.addEventListener('mouseenter', function() {
+        showKeyboardHint();
+    });
+
+    // ✅ Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        const isMobile = window.innerWidth < 1024;
+
+        // Set initial state berdasarkan screen size
+        if (isMobile) {
+            // Mobile: sidebar hidden by default
+            sidebar.classList.add('sidebar-hidden');
+            sidebar.classList.remove('collapsed');
+            overlay?.classList.remove('active');
+        } else {
+            // Desktop: sidebar visible by default (unless collapsed)
+            sidebar.classList.remove('sidebar-hidden');
+            if (isCollapsed) {
+                sidebar.classList.add('collapsed');
+            } else {
+                sidebar.classList.remove('collapsed');
+            }
+            overlay?.classList.remove('active');
+        }
+
+        // Show hint on first visit
+        if (!sessionStorage.getItem('sidebarHintShown')) {
+            setTimeout(() => {
+                showKeyboardHint();
+                sessionStorage.setItem('sidebarHintShown', 'true');
+            }, 1500);
+        }
+    });
+
+    // ✅ Handle window resize - FIX: Auto-show sidebar saat kembali ke desktop
+    window.addEventListener('resize', function() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const isMobile = window.innerWidth < 1024;
+
+        if (isMobile) {
+            // Switching to mobile - hide sidebar dan reset collapsed state
+            sidebar.classList.remove('collapsed');
+            sidebar.classList.add('sidebar-hidden');
+            overlay?.classList.remove('active');
+            // Reset localStorage saat masuk mobile
+            localStorage.removeItem('sidebarCollapsed');
+        } else {
+            // Switching to desktop - ALWAYS show sidebar (reset collapsed state)
+            sidebar.classList.remove('sidebar-hidden', 'sidebar-visible');
+            sidebar.classList.remove('collapsed');
+            overlay?.classList.remove('active');
+            // Reset localStorage agar default visible
+            localStorage.removeItem('sidebarCollapsed');
+        }
+    });
+</script>
 
     @stack('scripts')
 </body>

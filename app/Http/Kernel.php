@@ -68,4 +68,8 @@ class Kernel extends HttpKernel
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'role' => \App\Http\Middleware\RoleMiddleware::class,
     ];
+    protected $routeMiddleware = [
+    // ...
+    'prevent-back' => \App\Http\Middleware\PreventBackAfterLogout::class,
+];
 }

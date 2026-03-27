@@ -1,106 +1,338 @@
 @extends('layouts.app')
 
-@section('title', 'Admin Dashboard')
+@section('title', 'Admin Dashboard - Polije')
+
+@php
+use Carbon\Carbon;
+@endphp
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-        <p class="text-gray-600">Selamat datang, {{ auth()->user()->name }}</p>
-    </div>
+<div class="max-w-7xl mx-auto">
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-xl shadow-md p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm">Total Users</p>
-                    <p class="text-3xl font-bold text-gray-800">{{ $stats['total_users'] }}</p>
-                </div>
-                <div class="bg-blue-100 p-3 rounded-lg">
-                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                    </svg>
+    <!-- ======================================================================== -->
+    <!-- ✅ REAL-TIME CLOCK HEADER -->
+    <!-- ======================================================================== -->
+    <div class="mb-6 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-sm font-medium text-blue-100 mb-1">🕐 Waktu Sekarang</h2>
+                <div class="text-3xl md:text-4xl font-bold" id="realtime-clock">00:00:00</div>
+                <div class="text-blue-200 mt-1">
+                    {{ $realtimeDayName ?? Carbon::now()->isoFormat('dddd') }}, {{ ($currentTime ?? Carbon::now())->isoFormat('D MMMM Y') }}
                 </div>
             </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-md p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm">Mahasiswa</p>
-                    <p class="text-3xl font-bold text-blue-600">{{ $stats['mahasiswa'] }}</p>
-                </div>
-                <div class="bg-blue-100 p-3 rounded-lg">
-                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 14l9-5-9-5-9 5 9 5z"></path>
-                        <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-md p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm">Dosen</p>
-                    <p class="text-3xl font-bold text-green-600">{{ $stats['dosen'] }}</p>
-                </div>
-                <div class="bg-green-100 p-3 rounded-lg">
-                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-md p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm">Ketua Lab</p>
-                    <p class="text-3xl font-bold text-purple-600">{{ $stats['ketua_lab'] }}</p>
-                </div>
-                <div class="bg-purple-100 p-3 rounded-lg">
-                    <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-md p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm">Teknisi</p>
-                    <p class="text-3xl font-bold text-orange-600">{{ $stats['teknisi'] }}</p>
-                </div>
-                <div class="bg-orange-100 p-3 rounded-lg">
-                    <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-md p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm">Admin</p>
-                    <p class="text-3xl font-bold text-red-600">{{ $stats['admin'] }}</p>
-                </div>
-                <div class="bg-red-100 p-3 rounded-lg">
-                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                    </svg>
-                </div>
+            <div class="hidden md:block">
+                <svg class="w-20 h-20 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
             </div>
         </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="bg-white rounded-xl shadow-md p-6">
-        <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
+    <!-- ======================================================================== -->
+    <!-- ✅ STATS CARDS: Users + Labs + Bookings Real-time -->
+    <!-- ======================================================================== -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-8">
+        <!-- Users Stats -->
+        <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow">
+            <p class="text-xs text-gray-500">Total Users</p>
+            <p class="text-lg font-bold text-gray-800">{{ $stats['total_users'] ?? 0 }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow">
+            <p class="text-xs text-gray-500">Mahasiswa</p>
+            <p class="text-lg font-bold text-blue-600">{{ $stats['mahasiswa'] ?? 0 }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow">
+            <p class="text-xs text-gray-500">Dosen</p>
+            <p class="text-lg font-bold text-green-600">{{ $stats['dosen'] ?? 0 }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow">
+            <p class="text-xs text-gray-500">Staff</p>
+            <p class="text-lg font-bold text-purple-600">{{ ($stats['ketua_lab'] ?? 0) + ($stats['teknisi'] ?? 0) + ($stats['admin'] ?? 0) }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow">
+            <p class="text-xs text-gray-500">🏢 Total Lab</p>
+            <p class="text-lg font-bold text-indigo-600">{{ $stats['total_labs'] ?? 0 }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow">
+            <p class="text-xs text-gray-500">📚 Mata Kuliah</p>
+            <p class="text-lg font-bold text-teal-600">{{ $stats['active_courses'] ?? 0 }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow relative overflow-hidden">
+            <div class="absolute right-0 top-0 h-full w-1 bg-green-500 opacity-20"></div>
+            <p class="text-xs text-gray-500">📅 Booking Hari Ini</p>
+            <p class="text-lg font-bold text-green-600" id="bookings-today">{{ $stats['bookings_today'] ?? 0 }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow relative overflow-hidden">
+            <div class="absolute right-0 top-0 h-full w-1 bg-blue-500 opacity-20"></div>
+            <p class="text-xs text-gray-500">📊 Booking Bulan Ini</p>
+            <p class="text-lg font-bold text-blue-600" id="bookings-month">{{ $stats['bookings_this_month'] ?? 0 }}</p>
+        </div>
+    </div>
+
+    <!-- ======================================================================== -->
+    <!-- ✅ SECTION GRAFIK ANALYTICS (4 Charts) -->
+    <!-- ======================================================================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+        <!-- 📊 Chart 1: Lab Paling Sering Dipinjam -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">🏢</span>
+                Lab Paling Sering Dipinjam
+                <span class="text-xs text-gray-500 font-normal ml-2">(30 hari terakhir)</span>
+            </h3>
+            <div class="h-64">
+                <canvas id="chartLabUsage"></canvas>
+            </div>
+        </div>
+
+        <!-- 📊 Chart 2: Hari Paling Banyak Dipilih -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center text-green-600">📅</span>
+                Hari Paling Banyak Dipilih
+                <span class="text-xs text-gray-500 font-normal ml-2">(Semua booking)</span>
+            </h3>
+            <div class="h-64">
+                <canvas id="chartDayDistribution"></canvas>
+            </div>
+        </div>
+
+        <!-- 📊 Chart 3: Jenis Kegiatan Peminjaman -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600">📋</span>
+                Jenis Kegiatan Peminjaman
+                <span class="text-xs text-gray-500 font-normal ml-2">(3 bulan terakhir)</span>
+            </h3>
+            <div class="h-64">
+                <canvas id="chartActivityType"></canvas>
+            </div>
+        </div>
+
+        <!-- 📊 Chart 4: Top Peminjam -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600">👤</span>
+                Top Peminjam
+                <span class="text-xs text-gray-500 font-normal ml-2">(3 bulan terakhir)</span>
+            </h3>
+            <div class="h-64">
+                <canvas id="chartTopBorrowers"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================== -->
+    <!-- ✅ FILTER: Calendar + Day + Lab (Opsional, untuk ganti tanggal) -->
+    <!-- ======================================================================== -->
+    <div class="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <form method="GET" action="{{ route('admin.dashboard') }}" class="flex flex-wrap items-center gap-4" id="filterForm">
+
+            <!-- Calendar Date Picker -->
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-700">📅 Lihat Tanggal:</label>
+                <input type="date"
+                       id="datePicker"
+                       name="date"
+                       value="{{ $scheduleDate ?? date('Y-m-d') }}"
+                       min="{{ date('Y-m-d', strtotime('-30 days')) }}"
+                       max="{{ date('Y-m-d', strtotime('+90 days')) }}"
+                       class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-sm"
+                       onchange="onDateChange(this.value)">
+            </div>
+
+            <!-- Day Selector (Auto-sync) -->
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-700">Hari:</label>
+                <select name="day" id="daySelect" onchange="onDayChange(this.value)"
+                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium">
+                    @foreach(['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'] as $day)
+                        <option value="{{ $day }}" {{ ($scheduleDayName ?? '') == $day ? 'selected' : '' }}>{{ $day }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Lab Selector -->
+            <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-700">🏢 Filter Lab:</label>
+                <select name="lab" onchange="this.form.submit()"
+                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium">
+                    <option value="">Semua Lab</option>
+                    @foreach(($labs ?? []) as $labName)
+                        <option value="{{ $labName }}" {{ request('lab') == $labName ? 'selected' : '' }}>
+                            {{ $labName }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Info: Auto-load today -->
+            <span class="text-xs text-gray-500 ml-2 flex items-center gap-1">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                Menampilkan: <strong class="text-blue-600">{{ request('lab') ?: 'Semua Lab' }}</strong>
+                • <strong class="text-green-600">Hari Ini (Auto-load)</strong>
+            </span>
+
+            <!-- Reset Filter -->
+            @if(request('date') || request('day') || request('lab'))
+            <a href="{{ route('admin.dashboard') }}" class="text-sm text-gray-500 hover:text-gray-700 underline">
+                🔄 Reset
+            </a>
+            @endif
+        </form>
+    </div>
+
+    <!-- ======================================================================== -->
+    <!-- ✅ LEGEND / KETERANGAN STATUS -->
+    <!-- ======================================================================== -->
+    <div class="mb-6 flex flex-wrap gap-2">
+        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+            <span class="text-xs text-gray-700">Tersedia</span>
+        </div>
+        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <span class="text-xs text-gray-700">Proses</span>
+        </div>
+        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+            <span class="text-xs text-gray-700">Terisi</span>
+        </div>
+        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="w-3 h-3 rounded-full bg-gray-400"></div>
+            <span class="text-xs text-gray-700">Selesai</span>
+        </div>
+        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg shadow-sm border border-orange-200">
+            <div class="w-3 h-3 rounded-full bg-orange-500"></div>
+            <span class="text-xs text-gray-700">Pending</span>
+        </div>
+    </div>
+
+    <!-- ======================================================================== -->
+    <!-- ✅ LOADING INDICATOR -->
+    <!-- ======================================================================== -->
+    <div id="loadingIndicator" class="hidden mb-6 text-center py-4">
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-800 rounded-lg">
+            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Memuat jadwal...</span>
+        </div>
+    </div>
+
+    <!-- ======================================================================== -->
+    <!-- ✅ TABLES PER LAB (Schedule Grid) - AUTO-LOAD HARI INI -->
+    <!-- ======================================================================== -->
+    @php
+        $displayLabs = request('lab') ? [request('lab')] : ($labs ?? []);
+    @endphp
+
+    <div id="scheduleContainer">
+        @foreach($displayLabs as $lab)
+            @if(in_array($lab, ($labs ?? [])))
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6" data-lab="{{ $lab }}">
+                <!-- Header Lab -->
+                <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-gray-800">{{ $lab }}</h2>
+                    <span class="text-lg font-extrabold text-white bg-blue-600 px-4 py-1.5 rounded-lg shadow-sm">
+                        {{ $scheduleDayName ?? Carbon::now()->isoFormat('dddd') }}
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sesi</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jadwal</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200" id="scheduleBody-{{ Str::slug($lab) }}">
+                            @foreach(($scheduleData[$lab] ?? []) as $item)
+                            <tr class="hover:bg-gray-50 transition-colors {{ ($item['is_break'] ?? false) ? 'bg-gray-100' : '' }}">
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $item['no'] ?? $loop->iteration }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ $item['session'] ?? '-' }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 font-mono">
+                                    {{ $item['start'] ?? '-' }} - {{ $item['end'] ?? '-' }}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    @if(($item['is_break'] ?? false))
+                                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-300 text-gray-700">Istirahat</span>
+                                    @else
+                                        <span class="px-3 py-1 text-xs font-semibold rounded-full cursor-pointer transition-transform hover:scale-105
+                                            @if(($item['status_color'] ?? '') === 'green') bg-green-100 text-green-800 border border-green-300
+                                            @elseif(($item['status_color'] ?? '') === 'yellow') bg-yellow-100 text-yellow-800 border border-yellow-300
+                                            @elseif(($item['status_color'] ?? '') === 'red') bg-red-100 text-red-800 border border-red-300
+                                            @elseif(($item['status_color'] ?? '') === 'orange') bg-orange-100 text-orange-800 border border-orange-300
+                                            @elseif(($item['status_color'] ?? '') === 'blue') bg-blue-100 text-blue-800 border border-blue-300
+                                            @elseif(($item['status_color'] ?? '') === 'indigo') bg-indigo-100 text-indigo-800 border border-indigo-300
+                                            @else bg-gray-400 text-gray-100 @endif"
+                                            onclick="showStatusInfo('{{ $lab }}', '{{ $item['session'] ?? '' }}', '{{ $item['status_label'] ?? '' }}', '{{ $item['status_color'] ?? '' }}', '{{ addslashes($item['booking_info'] ?? '') }}')">
+                                            {{ $item['status_label'] ?? '-' }}
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                    @if(!($item['is_break'] ?? false))
+                                        @if(($item['status'] ?? '') === 'tersedia')
+                                            <button onclick="openBookingModal('{{ $lab }}', '{{ $item['session'] ?? '' }}', '{{ $item['start'] ?? '' }}', '{{ $item['end'] ?? '' }}', '{{ $scheduleDate ?? date('Y-m-d') }}')"
+                                                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-sm">
+                                                📅 Booking
+                                            </button>
+                                        @elseif(in_array(($item['status'] ?? ''), ['pending', 'approved_dosen', 'approved_teknisi']))
+                                            <div class="flex flex-col gap-1">
+                                                <span class="text-xs text-gray-500">{{ $item['booking_info'] ?? '' }}</span>
+                                                <span class="text-xs text-gray-400">Menunggu approval...</span>
+                                            </div>
+                                        @elseif(($item['status'] ?? '') === 'proses')
+                                            <span class="text-xs text-yellow-600 font-medium flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"></path>
+                                                </svg>
+                                                Proses
+                                            </span>
+                                        @elseif(($item['status'] ?? '') === 'terisi')
+                                            <span class="text-xs text-red-600 font-medium flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"></path>
+                                                </svg>
+                                                Terisi
+                                            </span>
+                                        @else
+                                            <span class="text-xs text-gray-500">Selesai</span>
+                                        @endif
+                                    @else
+                                        <span class="text-xs text-gray-500">-</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+        @endforeach
+
+        @if(empty($displayLabs) || (request('lab') && !in_array(request('lab'), ($labs ?? []))))
+        <div class="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
+            <p class="text-gray-500">Laboratorium tidak ditemukan.</p>
+            <a href="{{ route('admin.dashboard') }}" class="text-blue-600 hover:underline mt-2 inline-block">Reset filter</a>
+        </div>
+        @endif
+    </div>
+
+    <!-- ======================================================================== -->
+    <!-- ✅ QUICK ACTIONS -->
+    <!-- ======================================================================== -->
+    {{-- <div class="bg-white rounded-xl shadow-md p-6 mt-8">
+        <h2 class="text-xl font-semibold mb-4">⚡ Quick Actions</h2>
         <div class="flex flex-wrap gap-4">
             <a href="{{ route('admin.users.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,7 +346,431 @@
                 </svg>
                 Kelola User
             </a>
+            <a href="{{ route('admin.labs.index') }}" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+                Kelola Lab
+            </a>
+            <a href="{{ route('admin.class-schedules.index') }}" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                Jadwal Kuliah
+            </a>
+        </div>
+    </div> --}}
+
+</div>
+
+<!-- ======================================================================== -->
+<!-- ✅ MODALS (Status & Booking) -->
+<!-- ======================================================================== -->
+<div id="statusModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800">📋 Informasi Status</h3>
+            <button onclick="closeStatusModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="space-y-3">
+            <div><p class="text-sm text-gray-500">Laboratorium</p><p class="font-semibold text-gray-800" id="modalLab">-</p></div>
+            <div><p class="text-sm text-gray-500">Sesi</p><p class="font-semibold text-gray-800" id="modalSession">-</p></div>
+            <div><p class="text-sm text-gray-500">Status</p><p class="font-semibold" id="modalStatus">-</p></div>
+            <div id="modalInfo" class="text-sm text-gray-600 italic hidden"></div>
+            <div id="modalMessage" class="mt-4 p-3 rounded-lg bg-blue-50 text-sm text-blue-800"></div>
+        </div>
+        <div class="mt-6 flex justify-end">
+            <button onclick="closeStatusModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors">Tutup</button>
         </div>
     </div>
 </div>
+
+<div id="bookingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800">📅 Booking Laboratorium</h3>
+            <button onclick="closeBookingModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <form id="bookingForm" onsubmit="submitBooking(event)">
+            @csrf
+            <input type="hidden" id="bookingLab" name="lab_name">
+            <input type="hidden" id="bookingSession" name="session">
+            <input type="hidden" id="bookingStartTime" name="start_time">
+            <input type="hidden" id="bookingEndTime" name="end_time">
+            <div class="space-y-4">
+                <div><p class="text-sm text-gray-500">Laboratorium</p><p class="font-semibold text-gray-800" id="formLab">-</p></div>
+                <div><p class="text-sm text-gray-500">Sesi</p><p class="font-semibold text-gray-800" id="formSession">-</p></div>
+                <div><p class="text-sm text-gray-500">Waktu</p><p class="font-semibold text-gray-800" id="formTime">-</p></div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
+                    <input type="date" name="booking_date" id="bookingDate" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Keperluan</label>
+                    <textarea name="purpose" rows="3" required
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                              placeholder="Jelaskan keperluan penggunaan lab..."></textarea>
+                </div>
+            </div>
+            <div class="mt-6 flex gap-3">
+                <button type="button" onclick="closeBookingModal()" class="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors">Batal</button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors">✅ Konfirmasi Booking</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- ✅ JAVASCRIPT: Charts + Real-time Updates + Auto-load Schedule -->
+<!-- ======================================================================== -->
+@push('scripts')
+<!-- ✅ Load Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+
+<script>
+// ========================================================================
+// COLOR PALETTE FOR CHARTS
+// ========================================================================
+const colors = {
+    blue: '#3b82f6', indigo: '#6366f1', purple: '#8b5cf6',
+    green: '#22c55e', yellow: '#eab308', orange: '#f97316',
+    red: '#ef4444', gray: '#6b7280', teal: '#14b8a6'
+};
+
+// ========================================================================
+// 📊 CHART 1: Lab Usage (Bar Chart)
+// ========================================================================
+const ctxLab = document.getElementById('chartLabUsage');
+if (ctxLab) {
+    new Chart(ctxLab, {
+        type: 'bar',
+        data: {
+            labels: @json($chartLabLabels ?? []),
+            datasets: [{
+                label: 'Jumlah Peminjaman',
+                data: @json($chartLabData ?? []),
+                backgroundColor: [colors.blue, colors.indigo, colors.purple, colors.green, colors.orange],
+                borderRadius: 6,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => `${ctx.parsed} booking` } }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+// ========================================================================
+// 📊 CHART 2: Day Distribution (Pie Chart)
+// ========================================================================
+const ctxDay = document.getElementById('chartDayDistribution');
+if (ctxDay) {
+    new Chart(ctxDay, {
+        type: 'pie',
+        data: {
+            labels: @json($chartDayLabels ?? []),
+            datasets: [{
+                data: @json($chartDayData ?? []),
+                backgroundColor: [colors.blue, colors.green, colors.yellow, colors.orange, colors.red, colors.purple, colors.indigo],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
+                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed} booking` } }
+            }
+        }
+    });
+}
+
+// ========================================================================
+// 📊 CHART 3: Activity Type (Doughnut Chart)
+// ========================================================================
+const ctxActivity = document.getElementById('chartActivityType');
+if (ctxActivity) {
+    new Chart(ctxActivity, {
+        type: 'doughnut',
+        data: {
+            labels: @json($chartActivityLabels ?? []),
+            datasets: [{
+                data: @json($chartActivityData ?? []),
+                backgroundColor: [colors.blue, colors.green, colors.purple, colors.orange, colors.indigo, colors.yellow],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
+                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed} booking` } }
+            }
+        }
+    });
+}
+
+// ========================================================================
+// 📊 CHART 4: Top Borrowers (Horizontal Bar)
+// ========================================================================
+const ctxBorrowers = document.getElementById('chartTopBorrowers');
+if (ctxBorrowers) {
+    new Chart(ctxBorrowers, {
+        type: 'bar',
+        data: {
+            labels: @json($chartBorrowerLabels ?? []),
+            datasets: [{
+                label: 'Jumlah Booking',
+                data: @json($chartBorrowerData ?? []),
+                backgroundColor: @json($chartBorrowerRoles ?? []).map(role =>
+                    role === 'mahasiswa' ? colors.blue :
+                    role === 'dosen' ? colors.green :
+                    role === 'ketua_lab' ? colors.purple :
+                    role === 'teknisi' ? colors.orange : colors.gray
+                ),
+                borderRadius: 6,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+// ========================================================================
+// ⏰ REAL-TIME CLOCK
+// ========================================================================
+function updateClock() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    document.getElementById('realtime-clock').textContent = `${hours}:${minutes}:${seconds}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ========================================================================
+// ✅ AUTO-REFRESH BOOKING STATS (Real-time per 30 detik)
+// ========================================================================
+async function fetchBookingStats() {
+    try {
+        const response = await fetch("{{ route('admin.dashboard') }}?stats_only=1", {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (data.bookings_today !== undefined) {
+                document.getElementById('bookings-today').textContent = data.bookings_today;
+                document.getElementById('bookings-month').textContent = data.bookings_this_month;
+            }
+        }
+    } catch (e) {
+        // Silent fail - tidak ganggu UX
+    }
+}
+// Refresh stats setiap 30 detik
+setInterval(fetchBookingStats, 30000);
+
+// ========================================================================
+// 🗓️ DAY MAPPING FOR JAVASCRIPT
+// ========================================================================
+const jsDayIndexMap = {
+    'Minggu': 0, 'Senin': 1, 'Selasa': 2, 'Rabu': 3,
+    'Kamis': 4, 'Jumat': 5, 'Sabtu': 6
+};
+const jSDayNamesArray = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+// ========================================================================
+// 🔄 DATE/DAY SYNC FUNCTIONS
+// ========================================================================
+function onDateChange(dateValue) {
+    if (!dateValue) return;
+    const date = new Date(dateValue + 'T00:00:00');
+    const jsIndex = date.getDay();
+    const dayName = jSDayNamesArray[jsIndex];
+    document.getElementById('daySelect').value = dayName;
+    document.getElementById('filterForm').submit();
+}
+
+function onDayChange(dayName) {
+    const today = new Date();
+    const targetDayNum = jsDayIndexMap[dayName];
+    if (targetDayNum === undefined) return;
+    const todayDayNum = today.getDay();
+    let diff = targetDayNum - todayDayNum;
+    if (diff < 0) diff += 7;
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + diff);
+    const yyyy = targetDate.getFullYear();
+    const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(targetDate.getDate()).padStart(2, '0');
+    document.getElementById('datePicker').value = `${yyyy}-${mm}-${dd}`;
+    document.getElementById('filterForm').submit();
+}
+
+// ========================================================================
+// 💬 MODAL FUNCTIONS
+// ========================================================================
+function showStatusInfo(lab, session, status, color, bookingInfo = '') {
+    document.getElementById('modalLab').textContent = lab;
+    document.getElementById('modalSession').textContent = session;
+    document.getElementById('modalStatus').textContent = status;
+    const infoEl = document.getElementById('modalInfo');
+    const messageEl = document.getElementById('modalMessage');
+    const statusEl = document.getElementById('modalStatus');
+    if (bookingInfo && bookingInfo.trim() !== '') {
+        infoEl.textContent = '📋 ' + bookingInfo;
+        infoEl.classList.remove('hidden');
+    } else {
+        infoEl.classList.add('hidden');
+    }
+    let message = '';
+    if (color === 'green') { message = '✅ Laboratorium tersedia untuk booking.'; statusEl.className = 'font-semibold text-green-600'; }
+    else if (color === 'yellow') { message = '⏳ Sesi ini sedang berlangsung.'; statusEl.className = 'font-semibold text-yellow-600'; }
+    else if (color === 'red') { message = '❌ Laboratorium sudah terisi pada sesi ini.'; statusEl.className = 'font-semibold text-red-600'; }
+    else if (color === 'orange') { message = '⏳ Menunggu approval dosen.'; statusEl.className = 'font-semibold text-orange-600'; }
+    else if (color === 'blue') { message = '✅ Disetujui dosen, menunggu teknisi.'; statusEl.className = 'font-semibold text-blue-600'; }
+    else if (color === 'indigo') { message = '✅ Disetujui teknisi, menunggu approval Kalab.'; statusEl.className = 'font-semibold text-indigo-600'; }
+    else { message = '⏹️ Sesi ini sudah selesai.'; statusEl.className = 'font-semibold text-gray-600'; }
+    messageEl.textContent = message;
+    document.getElementById('statusModal').classList.remove('hidden');
+}
+function closeStatusModal() { document.getElementById('statusModal').classList.add('hidden'); }
+
+function openBookingModal(lab, session, start, end, date) {
+    document.getElementById('bookingLab').value = lab;
+    document.getElementById('bookingSession').value = session;
+    document.getElementById('bookingStartTime').value = start;
+    document.getElementById('bookingEndTime').value = end;
+    document.getElementById('formLab').textContent = lab;
+    document.getElementById('formSession').textContent = session;
+    document.getElementById('formTime').textContent = start + ' - ' + end;
+    document.getElementById('bookingDate').value = date || new Date().toISOString().split('T')[0];
+    document.getElementById('bookingModal').classList.remove('hidden');
+}
+function closeBookingModal() {
+    document.getElementById('bookingModal').classList.add('hidden');
+    document.getElementById('bookingForm').reset();
+}
+
+// ========================================================================
+// 📤 BOOKING SUBMISSION (AJAX)
+// ========================================================================
+async function submitBooking(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    try {
+        const response = await fetch('{{ route("booking.store") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            body: JSON.stringify(Object.fromEntries(formData))
+        });
+        const result = await response.json();
+        if (result.success) {
+            showToast('✅ ' + result.message, 'success');
+            closeBookingModal();
+            setTimeout(() => {
+                window.location.reload();
+                fetchBookingStats(); // Update stats setelah booking sukses
+            }, 1000);
+        } else {
+            showToast('❌ ' + (result.message || 'Terjadi kesalahan'), 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('❌ Terjadi kesalahan saat melakukan booking', 'error');
+    }
+}
+
+// ========================================================================
+// 🔔 TOAST NOTIFICATION
+// ========================================================================
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg text-white text-sm z-50 animate-fade-in ${
+        type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+    }`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ========================================================================
+// 🎯 EVENT LISTENERS
+// ========================================================================
+document.getElementById('statusModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeStatusModal();
+});
+document.getElementById('bookingModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeBookingModal();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeStatusModal();
+        closeBookingModal();
+    }
+});
+
+// ========================================================================
+// ✅ AUTO-LOAD: Jadwal hari ini langsung muncul tanpa user pilih tanggal
+// ========================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Jika tidak ada parameter date, set default ke hari ini
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('date')) {
+        urlParams.set('date', new Date().toISOString().split('T')[0]);
+        const newUrl = window.location.pathname + '?' + urlParams.toString();
+        window.history.replaceState({}, document.title, newUrl);
+    }
+
+    // Auto-refresh stats on load
+    fetchBookingStats();
+
+    // Refresh jika ada parameter refresh
+    if (urlParams.has('refresh')) {
+        urlParams.delete('refresh');
+        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+        window.history.replaceState({}, document.title, newUrl);
+        setTimeout(() => window.location.reload(), 500);
+    }
+});
+</script>
+@endpush
+
 @endsection

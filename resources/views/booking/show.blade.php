@@ -3,10 +3,42 @@
 @section('title', 'Detail Booking')
 
 @section('content')
+@php
+    // Helper function untuk mendapatkan nama user dari ID
+    function getUserNameById($userId) {
+        if (!$userId) return '-';
+        $user = \App\Models\User::find($userId);
+        return $user?->name ?? '-';
+    }
+
+    // Helper untuk cek status confirmed (karena method mungkin tidak ada di model)
+    function isBookingConfirmed($booking) {
+        return $booking->status === 'confirmed';
+    }
+
+    // Helper untuk cek apakah user boleh download form
+    function canDownloadForm($booking, $user) {
+        // Owner booking bisa download jika confirmed
+        if ($booking->user_id === $user->id && isBookingConfirmed($booking)) {
+            return true;
+        }
+        // Staff dengan hak akses bisa download jika confirmed
+        if (isBookingConfirmed($booking) && (
+            $user->isAdmin() ||
+            $user->isTeknisi() ||
+            $user->isKalab() ||
+            $user->role === 'ketua_lab'
+        )) {
+            return true;
+        }
+        return false;
+    }
+@endphp
+
 <div class="max-w-5xl mx-auto">
 
     <!-- Header -->
-    <div class="mb-8 flex justify-between items-start">
+    <div class="mb-8 flex justify-between items-start flex-wrap gap-4">
         <div>
             <a href="{{ route('booking.index') }}" class="text-blue-600 hover:text-blue-800 mb-4 inline-flex items-center gap-2 text-sm font-medium">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -18,7 +50,8 @@
             <p class="text-gray-600 mt-1">Informasi lengkap peminjaman laboratorium</p>
         </div>
 
-        @if($booking->isConfirmed())
+        <!-- ✅ TOMBOL DOWNLOAD PDF - FIX: Authorization untuk teknisi -->
+        @if(isBookingConfirmed($booking) && canDownloadForm($booking, Auth::user()))
         <a href="{{ route('booking.download-approved', $booking) }}" target="_blank"
            class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow flex items-center gap-2 transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -26,6 +59,13 @@
             </svg>
             Unduh PDF
         </a>
+        @elseif(isBookingConfirmed($booking))
+        <button disabled class="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg flex items-center gap-2 cursor-not-allowed" title="Anda tidak memiliki akses untuk mengunduh">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Unduh PDF
+        </button>
         @endif
     </div>
 
@@ -50,7 +90,7 @@
     <!-- Booking Info Card -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
         <!-- Header dengan Status -->
-        <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center flex-wrap gap-4">
             <div class="flex items-center gap-3">
                 <div class="bg-blue-100 p-3 rounded-lg">
                     <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,11 +99,11 @@
                 </div>
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">{{ $booking->lab_name }}</h2>
-                    <p class="text-sm text-gray-600">{{ $booking->session }} • {{ $booking->booking_date->format('d M Y') }}</p>
+                    <p class="text-sm text-gray-600">{{ $booking->session }} • {{ \Carbon\Carbon::parse($booking->booking_date)->format('d M Y') }}</p>
                 </div>
             </div>
-            <span class="px-4 py-2 text-sm font-semibold rounded-full {{ $booking->getStatusBadgeClass() }}">
-                {{ $booking->getStatusLabel() }}
+            <span class="px-4 py-2 text-sm font-semibold rounded-full {{ \App\Http\Controllers\BookingController::getStatusBadgeClass($booking->status) }}">
+                {{ \App\Http\Controllers\BookingController::getStatusLabel($booking->status) }}
             </span>
         </div>
 
@@ -75,14 +115,16 @@
                 <div>
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">👤 Data Pemohon</h3>
                     <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-2">
-                        <p class="font-bold text-gray-800">{{ $booking->user->name }}</p>
-                        <p class="text-sm text-gray-600">{{ $booking->user->role === 'mahasiswa' ? 'NIM: ' . ($booking->user->nim ?? 'N/A') : 'NIP: ' . ($booking->user->nip ?? 'N/A') }}</p>
-                        <p class="text-sm text-gray-600 break-all">{{ $booking->user->email }}</p>
+                        <p class="font-bold text-gray-800">{{ $booking->user->name ?? 'Unknown' }}</p>
+                        <p class="text-sm text-gray-600">
+                            {{ ($booking->user->role ?? '') === 'mahasiswa' ? 'NIM: ' . ($booking->user->nim ?? 'N/A') : 'NIP: ' . ($booking->user->nip ?? 'N/A') }}
+                        </p>
+                        <p class="text-sm text-gray-600 break-all">{{ $booking->user->email ?? '-' }}</p>
                         <p class="text-sm text-gray-600 font-medium flex items-center gap-2">
                             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                             {{ $booking->phone ?? '-' }}
                         </p>
-                        @if($booking->user->role === 'mahasiswa')
+                        @if(($booking->user->role ?? '') === 'mahasiswa')
                         <p class="text-xs text-gray-500 mt-2 border-t pt-2 border-gray-200">Prodi: {{ $booking->prodi ?? 'Teknik Informatika' }} - Gol. {{ $booking->golongan ?? '-' }}</p>
                         @endif
                     </div>
@@ -106,7 +148,7 @@
                         </div>
                         <div class="pt-1">
                              <span class="text-xs text-gray-500">Durasi</span>
-                             <span class="block font-semibold text-blue-600">{{ $booking->duration_days }} Hari</span>
+                             <span class="block font-semibold text-blue-600">{{ $booking->duration_days ?? 1 }} Hari</span>
                         </div>
                     </div>
                 </div>
@@ -131,19 +173,24 @@
                 </div>
 
                 <!-- Anggota Kelompok -->
-                @if($booking->is_group && $booking->membersCollection->count() > 0)
+                @if(($booking->is_group ?? false) && !empty($booking->members) && is_array($booking->members) && count($booking->members) > 0)
                 <div>
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">👥 Anggota Kelompok ({{ $booking->membersCollection->count() }})</h3>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">👥 Anggota Kelompok ({{ count($booking->members) }})</h3>
                     <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
                         <ul class="space-y-2 text-sm text-gray-700 pr-2">
-                            @foreach($booking->membersCollection as $member)
-                            <li class="flex items-start gap-2">
-                                <span class="block w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5"></span>
-                                <div>
-                                    <span class="font-medium">{{ $member->name }}</span>
-                                    <span class="text-xs text-gray-500 ml-1">({{ $member->nim ?? '-' }})</span>
-                                </div>
-                            </li>
+                            @foreach($booking->members as $memberId)
+                                @php
+                                    $member = \App\Models\User::find($memberId);
+                                @endphp
+                                @if($member)
+                                <li class="flex items-start gap-2">
+                                    <span class="block w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5"></span>
+                                    <div>
+                                        <span class="font-medium">{{ $member->name }}</span>
+                                        <span class="text-xs text-gray-500 ml-1">({{ $member->nim ?? '-' }})</span>
+                                    </div>
+                                </li>
+                                @endif
                             @endforeach
                         </ul>
                     </div>
@@ -151,14 +198,19 @@
                 @endif
 
                 <!-- Supervisor -->
-                @if($booking->supervisor)
-                <div>
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">👨‍🏫 Dosen Pembimbing</h3>
-                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                        <p class="font-semibold text-gray-800">{{ $booking->supervisor->name }}</p>
-                        <p class="text-sm text-gray-600 mt-1">{{ $booking->supervisor->email }}</p>
+                @if($booking->supervisor_id)
+                    @php
+                        $supervisor = \App\Models\User::find($booking->supervisor_id);
+                    @endphp
+                    @if($supervisor)
+                    <div>
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">👨‍🏫 Dosen Pembimbing</h3>
+                        <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                            <p class="font-semibold text-gray-800">{{ $supervisor->name }}</p>
+                            <p class="text-sm text-gray-600 mt-1">{{ $supervisor->email }}</p>
+                        </div>
                     </div>
-                </div>
+                    @endif
                 @endif
 
                 <!-- Metadata -->
@@ -171,11 +223,11 @@
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-500">Diajukan Oleh</span>
-                            <span class="font-semibold text-gray-800">{{ ucfirst(Auth::user()->role) }}</span>
+                            <span class="font-semibold text-gray-800">{{ ucfirst($booking->user->role ?? 'user') }}</span>
                         </div>
                          <div class="flex justify-between">
                             <span class="text-gray-500">Dibuat Pada</span>
-                            <span class="font-medium text-gray-800">{{ $booking->created_at->isoFormat('D MMM YYYY HH:mm') }}</span>
+                            <span class="font-medium text-gray-800">{{ \Carbon\Carbon::parse($booking->created_at)->isoFormat('D MMM YYYY HH:mm') }}</span>
                         </div>
                     </div>
                 </div>
@@ -195,16 +247,23 @@
                         <!-- Step 1: Dosen -->
                         <div class="md:flex items-center md:items-start gap-4">
                             <div class="flex-shrink-0 w-16 h-16 relative flex items-center justify-center">
-                                <div class="w-16 h-16 rounded-full {{ $booking->isApprovedByDosen() ? 'bg-green-100' : 'bg-gray-100' }} flex items-center justify-center text-xl font-bold
-                                    {{ $booking->isApprovedByDosen() ? 'text-green-600' : 'text-gray-400' }} border-4 border-white shadow-sm">
-                                    {{ $booking->isApprovedByDosen() ? '✓' : '1' }}
+                                @php
+                                    $isApprovedDosen = in_array($booking->status, ['approved_dosen', 'approved_teknisi', 'confirmed']);
+                                @endphp
+                                <div class="w-16 h-16 rounded-full {{ $isApprovedDosen ? 'bg-green-100' : 'bg-gray-100' }} flex items-center justify-center text-xl font-bold
+                                    {{ $isApprovedDosen ? 'text-green-600' : 'text-gray-400' }} border-4 border-white shadow-sm">
+                                    {{ $isApprovedDosen ? '✓' : '1' }}
                                 </div>
                             </div>
                             <div class="flex-1 pt-2 md:pt-0">
                                 <h4 class="text-sm font-bold text-gray-800 mb-1">Persetujuan Dosen</h4>
                                 <p class="text-xs text-gray-500">Menunggu persetujuan dari dosen pembimbing atau pengajar lab.</p>
                                 <div class="mt-2 text-xs font-mono text-gray-400">
-                                    {{ $booking->approved_at_dosen ? '✅ Disetujui oleh ' . ($booking->userById($booking->approved_by_dosen)?->name ?? 'Admin') . ' pada ' . $booking->approved_at_dosen->format('d/m/Y H:i') : 'Menunggu...' }}
+                                    @if($booking->approved_at_dosen)
+                                        ✅ Disetujui oleh {{ getUserNameById($booking->approved_by_dosen) }} pada {{ \Carbon\Carbon::parse($booking->approved_at_dosen)->format('d/m/Y H:i') }}
+                                    @else
+                                        Menunggu...
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -212,16 +271,23 @@
                         <!-- Step 2: Teknisi -->
                         <div class="md:flex items-center md:items-start gap-4">
                             <div class="flex-shrink-0 w-16 h-16 relative flex items-center justify-center">
-                                <div class="w-16 h-16 rounded-full {{ $booking->isApprovedByTeknisi() ? 'bg-green-100' : 'bg-gray-100' }} flex items-center justify-center text-xl font-bold
-                                    {{ $booking->isApprovedByTeknisi() ? 'text-green-600' : 'text-gray-400' }} border-4 border-white shadow-sm">
-                                    {{ $booking->isApprovedByTeknisi() ? '✓' : '2' }}
+                                @php
+                                    $isApprovedTeknisi = in_array($booking->status, ['approved_teknisi', 'confirmed']);
+                                @endphp
+                                <div class="w-16 h-16 rounded-full {{ $isApprovedTeknisi ? 'bg-green-100' : 'bg-gray-100' }} flex items-center justify-center text-xl font-bold
+                                    {{ $isApprovedTeknisi ? 'text-green-600' : 'text-gray-400' }} border-4 border-white shadow-sm">
+                                    {{ $isApprovedTeknisi ? '✓' : '2' }}
                                 </div>
                             </div>
                             <div class="flex-1 pt-2 md:pt-0">
                                 <h4 class="text-sm font-bold text-gray-800 mb-1">Verifikasi Teknisi</h4>
                                 <p class="text-xs text-gray-500">Teknisi akan memverifikasi ketersediaan alat dan fasilitas.</p>
                                 <div class="mt-2 text-xs font-mono text-gray-400">
-                                    {{ $booking->approved_at_teknisi ? '✅ Disetujui oleh ' . ($booking->userById($booking->approved_by_teknisi)?->name ?? '-') . ' pada ' . $booking->approved_at_teknisi->format('d/m/Y H:i') : 'Menunggu...' }}
+                                    @if($booking->approved_at_teknisi)
+                                        ✅ Disetujui oleh {{ getUserNameById($booking->approved_by_teknisi) }} pada {{ \Carbon\Carbon::parse($booking->approved_at_teknisi)->format('d/m/Y H:i') }}
+                                    @else
+                                        Menunggu...
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -229,16 +295,20 @@
                         <!-- Step 3: Ka Lab -->
                         <div class="md:flex items-center md:items-start gap-4">
                             <div class="flex-shrink-0 w-16 h-16 relative flex items-center justify-center">
-                                <div class="w-16 h-16 rounded-full {{ $booking->isConfirmed() ? 'bg-green-100' : 'bg-gray-100' }} flex items-center justify-center text-xl font-bold
-                                    {{ $booking->isConfirmed() ? 'text-green-600' : 'text-gray-400' }} border-4 border-white shadow-sm">
-                                    {{ $booking->isConfirmed() ? '✓' : '3' }}
+                                <div class="w-16 h-16 rounded-full {{ $booking->status === 'confirmed' ? 'bg-green-100' : 'bg-gray-100' }} flex items-center justify-center text-xl font-bold
+                                    {{ $booking->status === 'confirmed' ? 'text-green-600' : 'text-gray-400' }} border-4 border-white shadow-sm">
+                                    {{ $booking->status === 'confirmed' ? '✓' : '3' }}
                                 </div>
                             </div>
                             <div class="flex-1 pt-2 md:pt-0">
                                 <h4 class="text-sm font-bold text-gray-800 mb-1">Konfirmasi Akhir</h4>
                                 <p class="text-xs text-gray-500">Kalab melakukan finalisasi jadwal dan konfirmasi akses.</p>
                                 <div class="mt-2 text-xs font-mono text-gray-400">
-                                    {{ $booking->isConfirmed() ? '✅ KONFIRMASI FINAL by ' . ($booking->userById($booking->approved_by_kalab)?->name ?? '-') : 'Menunggu...' }}
+                                    @if($booking->status === 'confirmed')
+                                        ✅ KONFIRMASI FINAL oleh {{ getUserNameById($booking->approved_by_kalab) }}
+                                    @else
+                                        Menunggu...
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -297,42 +367,42 @@
             @endif
 
             <!-- 🟠 TEKNISI ACTIONS -->
-            @if(Auth::user()->role === 'teknisi' && $booking->canApproveByCurrentTeknisi())
+            @if(Auth::user()->isTeknisi() && in_array($booking->status, ['pending', 'approved_dosen']))
             <div class="bg-orange-50 rounded-xl border border-orange-200 p-6">
                 <h3 class="text-lg font-bold text-orange-800 mb-2">⚠️ Verifikasi Teknis</h3>
                 <p class="text-sm text-orange-600 mb-4">Pastikan peralatan tersedia dan kondisi lab layak digunakan untuk sesi ini.</p>
                 <div class="flex gap-3">
-                    <form action="{{ route('booking.approve-teknisi', $booking->id) }}" method="POST" class="flex-1">
+                    <form action="{{ route('booking.approve-teknisi', $booking) }}" method="POST" class="flex-1">
                         @csrf
                         <button type="submit" class="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors">✅ Konfirmasi Tersedia</button>
                     </form>
-                     <button onclick="document.getElementById('rejectModalTeknisi').classList.remove('hidden')" class="w-1/3 py-2 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium transition-colors">Tolak</button>
+                     <button onclick="openRejectModal()" class="w-1/3 py-2 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium transition-colors">Tolak</button>
                 </div>
             </div>
             @endif
 
             <!-- 💜 KALAB/ADMIN ACTIONS -->
-            @if((Auth::user()->role === 'ketua_lab' || Auth::user()->role === 'admin' || Auth::user()->isKalab()) && $booking->canApproveByKalab())
+            @if((Auth::user()->isAdmin() || Auth::user()->isKalab() || Auth::user()->role === 'ketua_lab') && $booking->status === 'approved_teknisi')
             <div class="bg-purple-50 rounded-xl border border-purple-200 p-6">
                 <h3 class="text-lg font-bold text-purple-800 mb-2">📝 Konfirmasi Final</h3>
                 <p class="text-sm text-purple-600 mb-4">Tahap akhir. Bukti seluruh proses approval sudah selesai. Konfirmasi dapat dilaksanakan.</p>
                 <div class="flex gap-3">
-                    <form action="{{ route('booking.approve-kalab', $booking->id) }}" method="POST" class="flex-1">
+                    <form action="{{ route('booking.approve-kalab', $booking) }}" method="POST" class="flex-1">
                         @csrf
                         <button type="submit" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">🔓 Konfirmasi Final</button>
                     </form>
-                     <button onclick="document.getElementById('rejectModalKalab').classList.remove('hidden')" class="w-1/3 py-2 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium transition-colors">Tolak</button>
+                     <button onclick="openRejectModal()" class="w-1/3 py-2 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium transition-colors">Tolak</button>
                 </div>
             </div>
             @endif
 
              <!-- 🛡️ ADMIN/STAFF DELETE ACTION -->
              @if(Auth::user()->isAdmin() || Auth::user()->isKalab() || Auth::user()->isTeknisi())
-                @if(!in_array($booking->status, ['rejected']))
+                @if(!in_array($booking->status, ['rejected', 'cancelled']))
                 <div class="bg-red-50 rounded-xl border border-red-200 p-6">
                     <h3 class="text-sm font-bold text-red-800 mb-2">⚠️ Manajemen Booking</h3>
                     <div class="flex gap-3">
-                         <form action="{{ route('booking.destroy', $booking->id) }}" method="POST" class="flex-1" onsubmit="return confirm('Apakah Anda yakin ingin menghapus booking ini? Tindakan ini tidak dapat dibatalkan.')">
+                         <form action="{{ route('booking.destroy', $booking) }}" method="POST" class="flex-1" onsubmit="return confirm('Apakah Anda yakin ingin menghapus booking ini? Tindakan ini tidak dapat dibatalkan.')">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="w-full py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-medium transition-colors border border-red-200">🗑️ Hapus Booking</button>
@@ -357,13 +427,51 @@
                         <span class="w-2 h-2 bg-green-500 rounded-full"></span>
                         Pastikan waktu booking tidak bentrok dengan kegiatan akademik lain.
                     </li>
-                    @if($booking->isConfirmed())
+                    @if(isBookingConfirmed($booking))
                     <li class="flex items-center gap-2">
                         <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
                         Formulir resmi siap diunduh untuk tanda tangan basah (jika diperlukan).
                     </li>
                     @endif
                 </ul>
+
+                <!-- ✅ Download Section dengan Authorization yang Benar -->
+                @if(isBookingConfirmed($booking))
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h4 class="text-sm font-bold text-gray-700 mb-3">📄 Dokumen Booking</h4>
+                    <div class="flex flex-wrap gap-2">
+                        @if(canDownloadForm($booking, Auth::user()))
+                            <a href="{{ route('booking.download-approved', $booking) }}"
+                               target="_blank"
+                               class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                Unduh Form Resmi
+                            </a>
+                        @else
+                            <button disabled class="inline-flex items-center gap-2 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed" title="Anda tidak memiliki akses untuk mengunduh">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                Tidak Diizinkan
+                            </button>
+                        @endif
+
+                        <a href="{{ route('booking.print-form', $booking) }}"
+                           target="_blank"
+                           class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                            </svg>
+                            Cetak
+                        </a>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">
+                        ⚠️ Form hanya dapat diunduh oleh pemohon atau staff berwenang setelah dikonfirmasi.
+                    </p>
+                </div>
+                @endif
 
                 <div class="mt-6 pt-6 border-t border-gray-200">
                     <p class="text-xs text-gray-400 text-center">
@@ -380,7 +488,7 @@
 
 <!-- ================= MODALS ============== -->
 
-<!-- Modal Reject Dosen -->
+<!-- Modal Reject (Shared) -->
 <div id="rejectModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 transform scale-100 transition-transform">
         <div class="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4">
@@ -393,7 +501,7 @@
         </div>
         <div class="px-6 py-5">
             <p class="text-gray-700 mb-4">Mohon berikan alasan penolakan agar pemohon dapat memperbaruinya.</p>
-            <form action="{{ route('booking.reject', $booking) }}" method="POST">
+            <form id="rejectForm" action="{{ route('booking.reject', $booking) }}" method="POST">
                 @csrf
                 <textarea name="rejection_reason" required rows="4" maxlength="500" placeholder="Contoh: Jadwal bentrok dengan kuliah..."
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm">{{ old('rejection_reason') }}</textarea>
@@ -406,6 +514,7 @@
     </div>
 </div>
 
+@push('scripts')
 <script>
 function openRejectModal() {
     document.getElementById('rejectModal').classList.remove('hidden');
@@ -414,12 +523,12 @@ function closeRejectModal() {
     document.getElementById('rejectModal').classList.add('hidden');
 }
 // Close modal jika klik backdrop
-window.onclick = function(event) {
-    const modal = document.getElementById('rejectModal');
-    if (event.target == modal) {
+document.getElementById('rejectModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
         closeRejectModal();
     }
-}
+});
 </script>
+@endpush
 
 @endsection

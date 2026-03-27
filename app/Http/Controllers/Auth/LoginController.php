@@ -70,27 +70,21 @@ class LoginController extends Controller
     /**
      * Logout
      */
-    public function logout(Request $request)
-    {
-        $user = Auth::user();
+   public function logout(Request $request)
+{
+    // Destroy session
+    Auth::logout();
 
-        if ($user) {
-            Log::info('User logged out', [
-                'user_id' => $user->id,
-                'name' => $user->name,
-                'role' => $user->role,
-                'is_kalab' => $user->isKalab(),
-                'view_mode' => session('dashboard_view_mode'),
-            ]);
-        }
+    // Invalidate session
+    $request->session()->invalidate();
 
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+    // Regenerate CSRF token
+    $request->session()->regenerateToken();
 
-        return redirect('/login');
-    }
-
+    // Redirect to login with message
+    return redirect()->route('login')
+        ->with('success', '✅ Anda telah berhasil logout.');
+}
     /**
      * Get redirect path based on user role AND kalab status
      */
@@ -118,6 +112,8 @@ class LoginController extends Controller
 
         return route('dashboard');
     }
+
+
 
     /**
      * Helper: Check if user should see Kalab view

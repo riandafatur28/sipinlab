@@ -9,14 +9,16 @@ use Carbon\Carbon;
 @section('content')
 <div class="max-w-7xl mx-auto">
 
-    <!-- Real-Time Clock -->
+    <!-- ======================================================================== -->
+    <!-- ✅ REAL-TIME CLOCK HEADER -->
+    <!-- ======================================================================== -->
     <div class="mb-6 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg">
         <div class="flex items-center justify-between">
             <div>
-                <h2 class="text-sm font-medium text-blue-100 mb-1">Waktu Sekarang</h2>
+                <h2 class="text-sm font-medium text-blue-100 mb-1">🕐 Waktu Sekarang</h2>
                 <div class="text-3xl md:text-4xl font-bold" id="realtime-clock">00:00:00</div>
                 <div class="text-blue-200 mt-1">
-                    {{ $realtimeDayName }}, {{ $currentTime->isoFormat('D MMMM Y') }}
+                    {{ $realtimeDayName ?? Carbon::now()->isoFormat('dddd') }}, {{ ($currentTime ?? Carbon::now())->isoFormat('D MMMM Y') }}
                 </div>
             </div>
             <div class="hidden md:block">
@@ -27,7 +29,164 @@ use Carbon\Carbon;
         </div>
     </div>
 
-    <!-- ✅ Filter: Calendar + Day + Lab + Kalab View Mode Toggle -->
+    <!-- ======================================================================== -->
+    <!-- ✅ STATS CARDS: Berdasarkan Role (Kalab / Teknisi / Dosen) -->
+    <!-- ======================================================================== -->
+    @php
+        $isKalab = Auth::user()->isKalab() || Auth::user()->role === 'ketua_lab';
+        $isTeknisi = Auth::user()->isTeknisi();
+        $userLab = Auth::user()->lab_name ?? '';
+    @endphp
+
+    @if($isKalab || $isTeknisi)
+    <div class="mb-6">
+        <!-- Header Stats -->
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800">
+                {{ $isKalab ? '📊 Statistik Semua Laboratorium' : '📊 Statistik Laboratorium: ' . $userLab }}
+            </h3>
+            @if($isTeknisi)
+                <span class="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                    🔒 Hanya data lab {{ $userLab }}
+                </span>
+            @endif
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+
+            <!-- 🏢 Total Labs -->
+            <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow">
+                <p class="text-xs text-gray-500">🏢 Total Lab</p>
+                <p class="text-lg font-bold text-indigo-600">{{ $stats['total_labs'] ?? 0 }}</p>
+            </div>
+
+            <!-- 📚 Active Courses -->
+            <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow">
+                <p class="text-xs text-gray-500">📚 Mata Kuliah</p>
+                <p class="text-lg font-bold text-teal-600">{{ $stats['active_courses'] ?? 0 }}</p>
+            </div>
+
+            <!-- 📅 Booking Hari Ini -->
+            <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow relative overflow-hidden">
+                <div class="absolute right-0 top-0 h-full w-1 bg-green-500 opacity-20"></div>
+                <p class="text-xs text-gray-500">📅 Hari Ini</p>
+                <p class="text-lg font-bold text-green-600">{{ $stats['bookings_today'] ?? 0 }}</p>
+            </div>
+
+            <!-- 📆 Booking Minggu Ini -->
+            <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow relative overflow-hidden">
+                <div class="absolute right-0 top-0 h-full w-1 bg-blue-500 opacity-20"></div>
+                <p class="text-xs text-gray-500">📆 Minggu Ini</p>
+                <p class="text-lg font-bold text-blue-600">{{ $stats['bookings_this_week'] ?? 0 }}</p>
+            </div>
+
+            <!-- 📊 Booking Bulan Ini -->
+            <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow relative overflow-hidden">
+                <div class="absolute right-0 top-0 h-full w-1 bg-purple-500 opacity-20"></div>
+                <p class="text-xs text-gray-500">📊 Bulan Ini</p>
+                <p class="text-lg font-bold text-purple-600">{{ $stats['bookings_current_month'] ?? 0 }}</p>
+            </div>
+
+            <!-- 📈 Booking Bulan Lalu -->
+            <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow relative overflow-hidden">
+                <div class="absolute right-0 top-0 h-full w-1 bg-orange-500 opacity-20"></div>
+                <p class="text-xs text-gray-500">📈 Bulan Lalu</p>
+                <p class="text-lg font-bold text-orange-600">{{ $stats['bookings_last_month'] ?? 0 }}</p>
+            </div>
+
+            <!-- ⏳ Pending -->
+            <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow">
+                <p class="text-xs text-gray-500">⏳ Pending</p>
+                <p class="text-lg font-bold text-yellow-600">{{ $stats['pending_count'] ?? 0 }}</p>
+            </div>
+
+            <!-- ✅ Confirmed -->
+            <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200 hover:shadow-md transition-shadow">
+                <p class="text-xs text-gray-500">✅ Confirmed</p>
+                <p class="text-lg font-bold text-green-600">{{ $stats['confirmed_count'] ?? 0 }}</p>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Stats untuk Dosen/Staff biasa (minimal) -->
+    @if(!$isKalab && !$isTeknisi && !empty($stats['my_bookings']))
+    <div class="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+            <p class="text-xs text-gray-500">Total Booking Saya</p>
+            <p class="text-xl font-bold text-blue-600">{{ $stats['my_bookings'] }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+            <p class="text-xs text-gray-500">Menunggu</p>
+            <p class="text-xl font-bold text-yellow-600">{{ $stats['my_pending'] }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+            <p class="text-xs text-gray-500">Disetujui</p>
+            <p class="text-xl font-bold text-green-600">{{ $stats['my_confirmed'] }}</p>
+        </div>
+    </div>
+    @endif
+
+    <!-- ======================================================================== -->
+    <!-- ✅ SECTION GRAFIK ANALYTICS (4 Charts) - Hanya untuk Kalab/Teknisi -->
+    <!-- ======================================================================== -->
+    @if($isKalab || $isTeknisi)
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+        <!-- 📊 Chart 1: Lab Paling Sering Dipinjam -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">🏢</span>
+                Lab Paling Sering Dipinjam
+                <span class="text-xs text-gray-500 font-normal ml-2">(30 hari terakhir)</span>
+            </h3>
+            <div class="h-64">
+                <canvas id="chartLabUsage"></canvas>
+            </div>
+        </div>
+
+        <!-- 📊 Chart 2: Hari Paling Banyak Dipilih -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center text-green-600">📅</span>
+                Hari Paling Banyak Dipilih
+                <span class="text-xs text-gray-500 font-normal ml-2">(Semua booking)</span>
+            </h3>
+            <div class="h-64">
+                <canvas id="chartDayDistribution"></canvas>
+            </div>
+        </div>
+
+        <!-- 📊 Chart 3: Jenis Kegiatan Peminjaman -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600">📋</span>
+                Jenis Kegiatan Peminjaman
+                <span class="text-xs text-gray-500 font-normal ml-2">(3 bulan terakhir)</span>
+            </h3>
+            <div class="h-64">
+                <canvas id="chartActivityType"></canvas>
+            </div>
+        </div>
+
+        <!-- 📊 Chart 4: Top Peminjam -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600">👤</span>
+                Top Peminjam
+                <span class="text-xs text-gray-500 font-normal ml-2">(3 bulan terakhir)</span>
+            </h3>
+            <div class="h-64">
+                <canvas id="chartTopBorrowers"></canvas>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- ======================================================================== -->
+    <!-- ✅ FILTER: Calendar + Day + Lab + Kalab View Mode Toggle -->
+    <!-- ======================================================================== -->
     <div class="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <form method="GET" action="{{ route('dashboard.staff') }}" class="flex flex-wrap items-center gap-4" id="filterForm">
 
@@ -50,7 +209,7 @@ use Carbon\Carbon;
                 <select name="day" id="daySelect" onchange="onDayChange(this.value)"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium">
                     @foreach(['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'] as $day)
-                        <option value="{{ $day }}" {{ $scheduleDayName == $day ? 'selected' : '' }}>{{ $day }}</option>
+                        <option value="{{ $day }}" {{ ($scheduleDayName ?? '') == $day ? 'selected' : '' }}>{{ $day }}</option>
                     @endforeach
                 </select>
             </div>
@@ -61,7 +220,7 @@ use Carbon\Carbon;
                 <select name="lab" onchange="this.form.submit()"
                         class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium">
                     <option value="">Semua Lab</option>
-                    @foreach($labs as $labName)
+                    @foreach(($labs ?? []) as $labName)
                         <option value="{{ $labName }}" {{ request('lab') == $labName ? 'selected' : '' }}>
                             {{ $labName }}
                         </option>
@@ -69,32 +228,13 @@ use Carbon\Carbon;
                 </select>
             </div>
 
-            <!-- ✅ Toggle View Mode Khusus Kalab -->
-            @if(Auth::user()->isKalab())
-            <div class="flex items-center gap-2 ml-auto pl-4 border-l border-gray-200">
-                <label class="text-sm font-medium text-gray-700">👁️ Tampilan:</label>
-                <div class="flex bg-gray-100 rounded-lg p-1">
-                    <button type="button"
-                            onclick="toggleViewMode('dosen')"
-                            class="px-3 py-1.5 rounded-md text-xs font-medium transition-all {{ session('dashboard_view_mode', 'kalab') !== 'kalab' ? 'bg-white text-blue-600 shadow' : 'text-gray-500 hover:text-gray-700' }}">
-                        🎓 Dosen
-                    </button>
-                    <button type="button"
-                            onclick="toggleViewMode('kalab')"
-                            class="px-3 py-1.5 rounded-md text-xs font-medium transition-all {{ session('dashboard_view_mode', 'kalab') === 'kalab' ? 'bg-white text-indigo-600 shadow' : 'text-gray-500 hover:text-gray-700' }}">
-                        👔 Kalab
-                    </button>
-                </div>
-            </div>
-            @endif
-
             <!-- Info Text -->
             <span class="text-xs text-gray-500 ml-2">
                 Menampilkan: <strong class="text-blue-600">{{ request('lab') ?: 'Semua Lab' }}</strong>
-                pada <strong class="text-blue-600">{{ $scheduleDayName }}, {{ Carbon::parse($scheduleDate)->isoFormat('D MMM Y') }}</strong>
+                pada <strong class="text-blue-600">{{ $scheduleDayName ?? '' }}, {{ Carbon::parse($scheduleDate ?? date('Y-m-d'))->isoFormat('D MMM Y') }}</strong>
                 @if(Auth::user()->isKalab())
-                    | Mode: <strong class="{{ session('dashboard_view_mode', 'kalab') === 'kalab' ? 'text-indigo-600' : 'text-blue-600' }}">
-                        {{ session('dashboard_view_mode', 'kalab') === 'kalab' ? '👔 Kalab' : '🎓 Dosen' }}
+                    | Mode: <strong class="{{ session('dashboard_view_mode', 'schedule') === 'management' ? 'text-indigo-600' : 'text-blue-600' }}">
+                        {{ session('dashboard_view_mode', 'schedule') === 'management' ? '👔 Kalab' : '🎓 Dosen' }}
                     </strong>
                 @endif
             </span>
@@ -108,7 +248,9 @@ use Carbon\Carbon;
         </form>
     </div>
 
-    <!-- ✅ Stats Dashboard untuk Kalab View -->
+    <!-- ======================================================================== -->
+    <!-- ✅ Stats Dashboard untuk Kalab View (Approval Stats) -->
+    <!-- ======================================================================== -->
     @if($isKalabView && !empty($stats))
     <div class="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-orange-50 border border-orange-200 rounded-xl p-4">
@@ -158,7 +300,9 @@ use Carbon\Carbon;
     </div>
     @endif
 
-    <!-- Legend / Keterangan Status -->
+    <!-- ======================================================================== -->
+    <!-- ✅ LEGEND / KETERANGAN STATUS -->
+    <!-- ======================================================================== -->
     <div class="mb-6 flex flex-wrap gap-3">
         <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="w-4 h-4 rounded-full bg-green-500"></div>
@@ -184,7 +328,9 @@ use Carbon\Carbon;
         @endif
     </div>
 
-    <!-- ✅ Loading Indicator (untuk AJAX calendar) -->
+    <!-- ======================================================================== -->
+    <!-- ✅ LOADING INDICATOR (untuk AJAX calendar) -->
+    <!-- ======================================================================== -->
     <div id="loadingIndicator" class="hidden mb-6 text-center py-4">
         <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-800 rounded-lg">
             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -195,24 +341,22 @@ use Carbon\Carbon;
         </div>
     </div>
 
-    <!-- Tables per Lab (Filtered) -->
+    <!-- ======================================================================== -->
+    <!-- ✅ TABLES PER LAB (Schedule Grid) - AUTO-LOAD HARI INI -->
+    <!-- ======================================================================== -->
     @php
-        $displayLabs = request('lab') ? [request('lab')] : $labs;
-        $dayMap = [
-            'Senin' => 'Monday', 'Selasa' => 'Tuesday', 'Rabu' => 'Wednesday',
-            'Kamis' => 'Thursday', 'Jumat' => 'Friday', 'Sabtu' => 'Saturday', 'Minggu' => 'Sunday',
-        ];
+        $displayLabs = request('lab') ? [request('lab')] : ($labs ?? []);
     @endphp
 
     <div id="scheduleContainer">
         @foreach($displayLabs as $lab)
-            @if(in_array($lab, $labs))
+            @if(in_array($lab, ($labs ?? [])))
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6" data-lab="{{ $lab }}">
                 <!-- Header Lab -->
                 <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex justify-between items-center">
                     <h2 class="text-xl font-bold text-gray-800">{{ $lab }}</h2>
                     <span class="text-lg font-extrabold text-white bg-blue-600 px-4 py-1.5 rounded-lg shadow-sm">
-                        {{ $scheduleDayName }}
+                        {{ $scheduleDayName ?? Carbon::now()->isoFormat('dddd') }}
                     </span>
                 </div>
 
@@ -228,38 +372,38 @@ use Carbon\Carbon;
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200" id="scheduleBody-{{ Str::slug($lab) }}">
-                            @foreach($scheduleData[$lab] ?? [] as $item)
-                            <tr class="hover:bg-gray-50 transition-colors {{ $item['is_break'] ? 'bg-gray-100' : '' }}">
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $item['no'] }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ $item['session'] }}</td>
+                            @foreach(($scheduleData[$lab] ?? []) as $item)
+                            <tr class="hover:bg-gray-50 transition-colors {{ ($item['is_break'] ?? false) ? 'bg-gray-100' : '' }}">
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $item['no'] ?? $loop->iteration }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ $item['session'] ?? '-' }}</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 font-mono">
-                                    {{ $item['start'] }} - {{ $item['end'] }}
+                                    {{ $item['start'] ?? '-' }} - {{ $item['end'] ?? '-' }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
-                                    @if($item['is_break'])
+                                    @if(($item['is_break'] ?? false))
                                         <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-300 text-gray-700">Istirahat</span>
                                     @else
                                         <span class="px-3 py-1 text-xs font-semibold rounded-full cursor-pointer transition-transform hover:scale-105
-                                            @if($item['status_color'] === 'green') bg-green-100 text-green-800 border border-green-300
-                                            @elseif($item['status_color'] === 'yellow') bg-yellow-100 text-yellow-800 border border-yellow-300
-                                            @elseif($item['status_color'] === 'red') bg-red-100 text-red-800 border border-red-300
-                                            @elseif($item['status_color'] === 'orange') bg-orange-100 text-orange-800 border border-orange-300
-                                            @elseif($item['status_color'] === 'blue') bg-blue-100 text-blue-800 border border-blue-300
-                                            @elseif($item['status_color'] === 'indigo') bg-indigo-100 text-indigo-800 border border-indigo-300
+                                            @if(($item['status_color'] ?? '') === 'green') bg-green-100 text-green-800 border border-green-300
+                                            @elseif(($item['status_color'] ?? '') === 'yellow') bg-yellow-100 text-yellow-800 border border-yellow-300
+                                            @elseif(($item['status_color'] ?? '') === 'red') bg-red-100 text-red-800 border border-red-300
+                                            @elseif(($item['status_color'] ?? '') === 'orange') bg-orange-100 text-orange-800 border border-orange-300
+                                            @elseif(($item['status_color'] ?? '') === 'blue') bg-blue-100 text-blue-800 border border-blue-300
+                                            @elseif(($item['status_color'] ?? '') === 'indigo') bg-indigo-100 text-indigo-800 border border-indigo-300
                                             @else bg-gray-400 text-gray-100 @endif"
-                                            onclick="showStatusInfo('{{ $lab }}', '{{ $item['session'] }}', '{{ $item['status_label'] }}', '{{ $item['status_color'] }}', '{{ addslashes($item['booking_info'] ?? '') }}')">
-                                            {{ $item['status_label'] }}
+                                            onclick="showStatusInfo('{{ $lab }}', '{{ $item['session'] ?? '' }}', '{{ $item['status_label'] ?? '' }}', '{{ $item['status_color'] ?? '' }}', '{{ addslashes($item['booking_info'] ?? '') }}')">
+                                            {{ $item['status_label'] ?? '-' }}
                                         </span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm">
-                                    @if(!$item['is_break'])
-                                        @if($item['status'] === 'tersedia')
-                                            <button onclick="openBookingModal('{{ $lab }}', '{{ $item['session'] }}', '{{ $item['start'] }}', '{{ $item['end'] }}', '{{ $scheduleDate }}')"
+                                    @if(!($item['is_break'] ?? false))
+                                        @if(($item['status'] ?? '') === 'tersedia')
+                                            <button onclick="openBookingModal('{{ $lab }}', '{{ $item['session'] ?? '' }}', '{{ $item['start'] ?? '' }}', '{{ $item['end'] ?? '' }}', '{{ $scheduleDate ?? date('Y-m-d') }}')"
                                                     class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors shadow-sm">
                                                 📅 Booking
                                             </button>
-                                        @elseif(in_array($item['status'], ['pending', 'approved_dosen', 'approved_teknisi']) && $isKalabView)
+                                        @elseif(in_array(($item['status'] ?? ''), ['pending', 'approved_dosen', 'approved_teknisi']) && $isKalabView)
                                             {{-- Kalab view: tampilkan tombol approve untuk booking pending --}}
                                             <div class="flex flex-col gap-1">
                                                 <span class="text-xs text-gray-500">{{ $item['booking_info'] ?? '' }}</span>
@@ -274,14 +418,14 @@ use Carbon\Carbon;
                                                     <span class="text-xs text-gray-400">Menunggu approval...</span>
                                                 @endif
                                             </div>
-                                        @elseif($item['status'] === 'proses')
+                                        @elseif(($item['status'] ?? '') === 'proses')
                                             <span class="text-xs text-yellow-600 font-medium flex items-center gap-1">
                                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"></path>
                                                 </svg>
                                                 Proses
                                             </span>
-                                        @elseif($item['status'] === 'terisi')
+                                        @elseif(($item['status'] ?? '') === 'terisi')
                                             <span class="text-xs text-red-600 font-medium flex items-center gap-1">
                                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"></path>
@@ -304,7 +448,7 @@ use Carbon\Carbon;
             @endif
         @endforeach
 
-        @if(empty($displayLabs) || (request('lab') && !in_array(request('lab'), $labs)))
+        @if(empty($displayLabs) || (request('lab') && !in_array(request('lab'), ($labs ?? []))))
         <div class="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
             <p class="text-gray-500">Laboratorium tidak ditemukan.</p>
             <a href="{{ route('dashboard.staff') }}" class="text-blue-600 hover:underline mt-2 inline-block">Reset filter</a>
@@ -314,11 +458,13 @@ use Carbon\Carbon;
 
 </div>
 
-<!-- Status Info Modal -->
+<!-- ======================================================================== -->
+<!-- ✅ MODALS (Status & Booking) -->
+<!-- ======================================================================== -->
 <div id="statusModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
         <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold text-gray-800">Informasi Status</h3>
+            <h3 class="text-lg font-bold text-gray-800">📋 Informasi Status</h3>
             <button onclick="closeStatusModal()" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -338,7 +484,6 @@ use Carbon\Carbon;
     </div>
 </div>
 
-<!-- Booking Modal -->
 <div id="bookingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
         <div class="flex items-center justify-between mb-4">
@@ -355,7 +500,6 @@ use Carbon\Carbon;
             <input type="hidden" id="bookingSession" name="session">
             <input type="hidden" id="bookingStartTime" name="start_time">
             <input type="hidden" id="bookingEndTime" name="end_time">
-
             <div class="space-y-4">
                 <div><p class="text-sm text-gray-500">Laboratorium</p><p class="font-semibold text-gray-800" id="formLab">-</p></div>
                 <div><p class="text-sm text-gray-500">Sesi</p><p class="font-semibold text-gray-800" id="formSession">-</p></div>
@@ -380,20 +524,148 @@ use Carbon\Carbon;
     </div>
 </div>
 
+<!-- ======================================================================== -->
+<!-- ✅ JAVASCRIPT: Charts + Real-time Updates + Auto-load Schedule -->
+<!-- ======================================================================== -->
 @push('scripts')
-<script>
-// ✅ Auto-refresh dashboard ketika ada booking baru/approval
-document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('refresh')) {
-        urlParams.delete('refresh');
-        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-        window.history.replaceState({}, document.title, newUrl);
-        setTimeout(() => window.location.reload(), 500);
-    }
-});
+<!-- ✅ Load Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
 
-// Real-time clock
+<script>
+// ========================================================================
+// 🎨 COLOR PALETTE FOR CHARTS
+// ========================================================================
+const colors = {
+    blue: '#3b82f6', indigo: '#6366f1', purple: '#8b5cf6',
+    green: '#22c55e', yellow: '#eab308', orange: '#f97316',
+    red: '#ef4444', gray: '#6b7280', teal: '#14b8a6'
+};
+
+// ========================================================================
+// 📊 CHART 1: Lab Usage (Bar Chart)
+// ========================================================================
+const ctxLab = document.getElementById('chartLabUsage');
+if (ctxLab && @json($chartLabLabels ?? []).length > 0) {
+    new Chart(ctxLab, {
+        type: 'bar',
+        data: {
+            labels: @json($chartLabLabels ?? []),
+            datasets: [{
+                label: 'Jumlah Peminjaman',
+                data: @json($chartLabData ?? []),
+                backgroundColor: [colors.blue, colors.indigo, colors.purple, colors.green, colors.orange],
+                borderRadius: 6,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx => `${ctx.parsed} booking` } }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+// ========================================================================
+// 📊 CHART 2: Day Distribution (Pie Chart)
+// ========================================================================
+const ctxDay = document.getElementById('chartDayDistribution');
+if (ctxDay && @json($chartDayLabels ?? []).length > 0) {
+    new Chart(ctxDay, {
+        type: 'pie',
+        data: {
+            labels: @json($chartDayLabels ?? []),
+            datasets: [{
+                data: @json($chartDayData ?? []),
+                backgroundColor: [colors.blue, colors.green, colors.yellow, colors.orange, colors.red, colors.purple, colors.indigo],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
+                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed} booking` } }
+            }
+        }
+    });
+}
+
+// ========================================================================
+// 📊 CHART 3: Activity Type (Doughnut Chart)
+// ========================================================================
+const ctxActivity = document.getElementById('chartActivityType');
+if (ctxActivity && @json($chartActivityLabels ?? []).length > 0) {
+    new Chart(ctxActivity, {
+        type: 'doughnut',
+        data: {
+            labels: @json($chartActivityLabels ?? []),
+            datasets: [{
+                data: @json($chartActivityData ?? []),
+                backgroundColor: [colors.blue, colors.green, colors.purple, colors.orange, colors.indigo, colors.yellow],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
+                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed} booking` } }
+            }
+        }
+    });
+}
+
+// ========================================================================
+// 📊 CHART 4: Top Borrowers (Horizontal Bar)
+// ========================================================================
+const ctxBorrowers = document.getElementById('chartTopBorrowers');
+if (ctxBorrowers && @json($chartBorrowerLabels ?? []).length > 0) {
+    new Chart(ctxBorrowers, {
+        type: 'bar',
+        data: {
+            labels: @json($chartBorrowerLabels ?? []),
+            datasets: [{
+                label: 'Jumlah Booking',
+                data: @json($chartBorrowerData ?? []),
+                backgroundColor: @json($chartBorrowerRoles ?? []).map(role =>
+                    role === 'mahasiswa' ? colors.blue :
+                    role === 'dosen' ? colors.green :
+                    role === 'ketua_lab' ? colors.purple :
+                    role === 'teknisi' ? colors.orange : colors.gray
+                ),
+                borderRadius: 6,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+// ========================================================================
+// ⏰ REAL-TIME CLOCK
+// ========================================================================
 function updateClock() {
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, '0');
@@ -404,96 +676,46 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ✅ Mapping hari Indonesia ke Inggris untuk Carbon (Digunakan backend/sesuai kebutuhan lain)
-const dayMapToEnglish = {
-    'Senin': 'Monday', 'Selasa': 'Tuesday', 'Rabu': 'Wednesday',
-    'Kamis': 'Thursday', 'Jumat': 'Friday', 'Sabtu': 'Saturday', 'Minggu': 'Sunday'
-};
-
-// ✅ Mapping Hari Indonesia ke Integer Sesuai Standar JavaScript getDay()
-// JavaScript getDay(): 0=Minggu, 1=Senin, ..., 6=Sabtu
+// ========================================================================
+// 🗓️ DAY MAPPING FOR JAVASCRIPT
+// ========================================================================
 const jsDayIndexMap = {
-    'Minggu': 0,
-    'Senin': 1,
-    'Selasa': 2,
-    'Rabu': 3,
-    'Kamis': 4,
-    'Jumat': 5,
-    'Sabtu': 6
+    'Minggu': 0, 'Senin': 1, 'Selasa': 2, 'Rabu': 3,
+    'Kamis': 4, 'Jumat': 5, 'Sabtu': 6
 };
-
-// ✅ Array nama hari untuk akses cepat via index getDay()
 const jSDayNamesArray = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
-
-// ✅ Fungsi: Ketika tanggal diubah di datepicker → Update Dropdown Hari
+// ========================================================================
+// 🔄 DATE/DAY SYNC FUNCTIONS
+// ========================================================================
 function onDateChange(dateValue) {
     if (!dateValue) return;
-    // Tambahkan zona waktu agar tidak terpengaruh offset lokal browser terlalu ekstrem
     const date = new Date(dateValue + 'T00:00:00');
-
-    // Ambil index sesuai standar JS (0-6)
     const jsIndex = date.getDay();
-    // Ambil nama dari array berdasarkan index tersebut
     const dayName = jSDayNamesArray[jsIndex];
-
     document.getElementById('daySelect').value = dayName;
     document.getElementById('filterForm').submit();
 }
 
-/**
- * ✅ FIXED: Fungsi: Ketika hari diubah di select → Cari Tanggal Terdekat (Correct Logic)
- */
 function onDayChange(dayName) {
     const today = new Date();
-
-    // ✅ Ambil angka hari target menggunakan map standar JS (0-6)
     const targetDayNum = jsDayIndexMap[dayName];
-
-    // Jika nama hari tidak dikenali, fallback ke hari ini
-    if (targetDayNum === undefined) {
-        console.error('Unknown day name:', dayName);
-        return;
-    }
-
-    // Ambil angka hari hari ini (0=Minggu...6=Sabtu)
+    if (targetDayNum === undefined) return;
     const todayDayNum = today.getDay();
-
-    // Hitung selisih
     let diff = targetDayNum - todayDayNum;
-
-    // ❌ LOGIKA SALAH (Oleh karena itu muncul 1 hari kurang):
-    // if (diff <= 0) diff += 7;
-    // Ini akan menjadikannya besok jika memilih hari yang sama (misal pilih Senin saat ini Senin)
-    // diff = 0 -> +7 = 7. Hasilnya 1 minggu depan (Salah).
-
-    // ✅ LOGIKA BENAR:
-    // Jika hasil pengurangan negatif, berarti hari yang dipilih sudah lewat minggu ini.
-    if (diff < 0) {
-        diff += 7;
-    }
-    // Jika diff positif atau nol (hari sama), biarkan tetap begitu.
-    // Namun jika user memilih hari SAMA DENGAN HARI INI, user mungkin ingin menampilkan hari INI juga.
-    // Jadi kondisi diff < 0 adalah kuncinya. Jangan tambah 7 jika diff >= 0.
-
-    // Contoh: Hari ini Jumat (5), Pilih Senin (1)
-    // diff = 1 - 5 = -4. -4 + 7 = 3. Jumat + 3 hari = Senin (Benar).
-
-    // Contoh: Hari ini Senin (1), Pilih Senin (1)
-    // diff = 1 - 1 = 0. diff tidak < 0. Tetap 0. Senin + 0 = Senin (Benar).
-
+    if (diff < 0) diff += 7;
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + diff);
-
     const yyyy = targetDate.getFullYear();
     const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
     const dd = String(targetDate.getDate()).padStart(2, '0');
-
     document.getElementById('datePicker').value = `${yyyy}-${mm}-${dd}`;
     document.getElementById('filterForm').submit();
 }
 
-// ✅ Fungsi: Toggle View Mode untuk Kalab (AJAX)
+// ========================================================================
+// 👁️ TOGGLE VIEW MODE FOR KALAB (AJAX)
+// ========================================================================
 function toggleViewMode(mode) {
     // Optimistic UI update
     document.querySelectorAll('[onclick*="toggleViewMode"]').forEach(btn => {
@@ -501,7 +723,7 @@ function toggleViewMode(mode) {
         btn.classList.add('text-gray-500');
     });
     event.currentTarget.classList.remove('text-gray-500');
-    event.currentTarget.classList.add('bg-white', mode === 'kalab' ? 'text-indigo-600' : 'text-blue-600', 'shadow');
+    event.currentTarget.classList.add('bg-white', mode === 'management' ? 'text-indigo-600' : 'text-blue-600', 'shadow');
 
     // AJAX request
     fetch("{{ route('dashboard.toggle-view-mode') }}", {
@@ -530,113 +752,22 @@ function toggleViewMode(mode) {
     });
 }
 
-// ✅ Fungsi: Load jadwal via AJAX (opsional, untuk UX lebih smooth)
-async function loadScheduleByDate(date, lab = '') {
-    const loading = document.getElementById('loadingIndicator');
-
-    try {
-        loading.classList.remove('hidden');
-
-        const response = await fetch("{{ route('dashboard.schedule-by-date') }}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify({ date, lab })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            updateScheduleUI(data.schedule, data.day_name, data.date);
-            const url = new URL(window.location);
-            url.searchParams.set('date', data.date);
-            window.history.replaceState({}, '', url);
-        }
-    } catch (error) {
-        console.error('Error loading schedule:', error);
-        document.getElementById('filterForm').submit();
-    } finally {
-        loading.classList.add('hidden');
-    }
-}
-
-// ✅ Fungsi: Update UI dengan data jadwal baru dari AJAX
-function updateScheduleUI(scheduleData, dayName, date) {
-    document.querySelectorAll('[data-lab] span.bg-blue-600').forEach(el => {
-        el.textContent = dayName;
-    });
-
-    const infoText = document.querySelector('.text-gray-500 strong.text-blue-600:last-child');
-    if (infoText) {
-        const labName = document.querySelector('select[name="lab"]')?.value || 'Semua Lab';
-        const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('id-ID', {
-            day: 'numeric', month: 'short', year: 'numeric'
-        });
-        infoText.textContent = `${dayName}, ${formattedDate}`;
-    }
-
-    Object.keys(scheduleData).forEach(labName => {
-        const tbody = document.getElementById(`scheduleBody-${labName.replace(/\s+/g, '-').toLowerCase()}`);
-        if (!tbody) return;
-
-        const sessions = scheduleData[labName];
-        let html = '';
-
-        sessions.forEach((item, index) => {
-            if (item.is_break) {
-                html += `<tr class="bg-gray-100"><td class="px-4 py-3 text-sm text-gray-900">${index + 1}</td><td class="px-4 py-3 text-sm font-medium text-gray-900">${item.session}</td><td class="px-4 py-3 text-sm text-gray-600 font-mono">${item.start} - ${item.end}</td><td class="px-4 py-3"><span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-300 text-gray-700">Istirahat</span></td><td class="px-4 py-3 text-xs text-gray-500">-</td></tr>`;
-            } else {
-                const colorClass = item.status_color === 'green' ? 'bg-green-100 text-green-800 border-green-300' :
-                                  item.status_color === 'yellow' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                                  item.status_color === 'red' ? 'bg-red-100 text-red-800 border-red-300' :
-                                  item.status_color === 'orange' ? 'bg-orange-100 text-orange-800 border-orange-300' :
-                                  item.status_color === 'blue' ? 'bg-blue-100 text-blue-800 border-blue-300' :
-                                  item.status_color === 'indigo' ? 'bg-indigo-100 text-indigo-800 border-indigo-300' :
-                                  'bg-gray-400 text-gray-100';
-
-                const bookingInfo = item.booking_info ? ` - ${item.booking_info}` : '';
-                let actionBtn = '';
-
-                if (item.status === 'tersedia') {
-                    actionBtn = `<button onclick="openBookingModal('${labName}', '${item.session}', '${item.start}', '${item.end}', '${date}')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium">📅 Booking</button>`;
-                } else if (item.status === 'approved_teknisi') {
-                    actionBtn = `<form action="/booking/${item.booking_id}/approve-kalab" method="POST">@csrf<button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs font-medium">👔 Approve</button></form>`;
-                } else if (item.status === 'proses') {
-                    actionBtn = `<span class="text-xs text-yellow-600">⏳ Proses</span>`;
-                } else if (item.status === 'terisi') {
-                    actionBtn = `<span class="text-xs text-red-600">❌ Terisi</span>`;
-                } else {
-                    actionBtn = `<span class="text-xs text-gray-500">Selesai</span>`;
-                }
-
-                html += `<tr class="hover:bg-gray-50"><td class="px-4 py-3 text-sm text-gray-900">${index + 1}</td><td class="px-4 py-3 text-sm font-medium text-gray-900">${item.session}</td><td class="px-4 py-3 text-sm text-gray-600 font-mono">${item.start} - ${item.end}</td><td class="px-4 py-3"><span class="px-3 py-1 text-xs font-semibold rounded-full cursor-pointer ${colorClass}" onclick="showStatusInfo('${labName}', '${item.session}', '${item.status_label}', '${item.status_color}', '${item.booking_info?.replace(/'/g, "\\'") || ''}')">${item.status_label}</span></td><td class="px-4 py-3 text-sm">${actionBtn}</td></tr>`;
-            }
-        });
-
-        tbody.innerHTML = html;
-    });
-}
-
-// Status modal functions
+// ========================================================================
+// 💬 MODAL FUNCTIONS
+// ========================================================================
 function showStatusInfo(lab, session, status, color, bookingInfo = '') {
     document.getElementById('modalLab').textContent = lab;
     document.getElementById('modalSession').textContent = session;
     document.getElementById('modalStatus').textContent = status;
-
     const infoEl = document.getElementById('modalInfo');
     const messageEl = document.getElementById('modalMessage');
     const statusEl = document.getElementById('modalStatus');
-
     if (bookingInfo && bookingInfo.trim() !== '') {
         infoEl.textContent = '📋 ' + bookingInfo;
         infoEl.classList.remove('hidden');
     } else {
         infoEl.classList.add('hidden');
     }
-
     let message = '';
     if (color === 'green') { message = '✅ Laboratorium tersedia untuk booking.'; statusEl.className = 'font-semibold text-green-600'; }
     else if (color === 'yellow') { message = '⏳ Sesi ini sedang berlangsung.'; statusEl.className = 'font-semibold text-yellow-600'; }
@@ -645,15 +776,11 @@ function showStatusInfo(lab, session, status, color, bookingInfo = '') {
     else if (color === 'blue') { message = '✅ Disetujui dosen, menunggu teknisi.'; statusEl.className = 'font-semibold text-blue-600'; }
     else if (color === 'indigo') { message = '✅ Disetujui teknisi, menunggu approval Kalab.'; statusEl.className = 'font-semibold text-indigo-600'; }
     else { message = '⏹️ Sesi ini sudah selesai.'; statusEl.className = 'font-semibold text-gray-600'; }
-
     messageEl.textContent = message;
     document.getElementById('statusModal').classList.remove('hidden');
 }
-
 function closeStatusModal() { document.getElementById('statusModal').classList.add('hidden'); }
-document.getElementById('statusModal')?.addEventListener('click', function(e) { if (e.target === this) closeStatusModal(); });
 
-// Booking modal functions
 function openBookingModal(lab, session, start, end, date) {
     document.getElementById('bookingLab').value = lab;
     document.getElementById('bookingSession').value = session;
@@ -665,32 +792,30 @@ function openBookingModal(lab, session, start, end, date) {
     document.getElementById('bookingDate').value = date || new Date().toISOString().split('T')[0];
     document.getElementById('bookingModal').classList.remove('hidden');
 }
-
 function closeBookingModal() {
     document.getElementById('bookingModal').classList.add('hidden');
     document.getElementById('bookingForm').reset();
 }
 
+// ========================================================================
+// 📤 BOOKING SUBMISSION (AJAX)
+// ========================================================================
 async function submitBooking(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
-
     try {
         const response = await fetch('{{ route("booking.store") }}', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
             body: JSON.stringify(Object.fromEntries(formData))
         });
-
         const result = await response.json();
-
         if (result.success) {
             showToast('✅ ' + result.message, 'success');
             closeBookingModal();
-            setTimeout(() => window.location.reload(), 1000);
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         } else {
             showToast('❌ ' + (result.message || 'Terjadi kesalahan'), 'error');
         }
@@ -700,12 +825,12 @@ async function submitBooking(event) {
     }
 }
 
-document.getElementById('bookingModal')?.addEventListener('click', function(e) { if (e.target === this) closeBookingModal(); });
-
-// Simple toast notification
+// ========================================================================
+// 🔔 TOAST NOTIFICATION
+// ========================================================================
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
-    toast.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg text-white text-sm z-50 animate-fade-in ${
+    toast.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg text-white text-sm z-50 ${
         type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600'
     }`;
     toast.textContent = message;
@@ -717,11 +842,40 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// Close modal with Escape key
+// ========================================================================
+// 🎯 EVENT LISTENERS
+// ========================================================================
+document.getElementById('statusModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeStatusModal();
+});
+document.getElementById('bookingModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeBookingModal();
+});
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeStatusModal();
         closeBookingModal();
+    }
+});
+
+// ========================================================================
+// ✅ AUTO-LOAD: Jadwal hari ini langsung muncul tanpa user pilih tanggal
+// ========================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Jika tidak ada parameter date, set default ke hari ini
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('date')) {
+        urlParams.set('date', new Date().toISOString().split('T')[0]);
+        const newUrl = window.location.pathname + '?' + urlParams.toString();
+        window.history.replaceState({}, document.title, newUrl);
+    }
+
+    // Refresh jika ada parameter refresh
+    if (urlParams.has('refresh')) {
+        urlParams.delete('refresh');
+        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+        window.history.replaceState({}, document.title, newUrl);
+        setTimeout(() => window.location.reload(), 500);
     }
 });
 </script>

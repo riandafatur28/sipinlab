@@ -43,122 +43,130 @@ Route::middleware('guest')->group(function () {
 // ============================================================================
 Route::middleware('auth')->group(function () {
 
-    // Logout
+    // 🔐 Logout (hanya butuh auth, TIDAK perlu prevent-back karena akan redirect ke login)
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-    // Dashboard Main Pages
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/dashboard/mahasiswa', [DashboardController::class, 'mahasiswa'])->name('dashboard.mahasiswa');
-    Route::get('/dashboard/staff', [DashboardController::class, 'staff'])->name('dashboard.staff');
+    // ✅ Semua route authenticated lainnya dengan middleware 'prevent-back'
+    //    (Outer group sudah punya 'auth', jadi inner cukup 'prevent-back' saja)
+    Route::middleware('prevent-back')->group(function () {
 
-    // Profile
-    Route::prefix('profile')->name('profile.')->group(function () {
-        Route::get('/', [ProfileController::class, 'show'])->name('show');
-        Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
-        Route::put('/', [ProfileController::class, 'update'])->name('update');
-    });
+        // ========================================================================
+        // 📊 DASHBOARD ROUTES
+        // ========================================================================
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/mahasiswa', [DashboardController::class, 'mahasiswa'])->name('dashboard.mahasiswa');
+        Route::get('/dashboard/staff', [DashboardController::class, 'staff'])->name('dashboard.staff');
 
-    // ========================================================================
-    // ✅ AJAX & API Routes (TIDAK ADA DUPLIKASI DI SINI)
-    // Prefix 'dashboard' sudah diterapkan, jadi URL hanya '/toggle-view-mode'
-    // ========================================================================
-        // ✅ BENAR (Tambahkan ->name('dashboard.') di sini)
-    Route::prefix('dashboard')->name('dashboard.')->group(function () {
-        Route::post('/toggle-view-mode', [DashboardController::class, 'toggleViewMode'])->name('toggle-view-mode');
-        Route::post('/schedule-by-date', [DashboardController::class, 'getScheduleByDate'])->name('schedule-by-date');
-    });
-
-    // ========================================================================
-    // 📋 BOOKING ROUTES
-    // ========================================================================
-    Route::prefix('booking')->name('booking.')->group(function () {
-
-        // Index
-        Route::get('/', [BookingController::class, 'index'])->name('index');
-
-        // Create Forms
-        Route::get('/create', [BookingController::class, 'create'])->name('create');
-        Route::get('/dosen-create', [BookingController::class, 'createDosen'])->name('create-dosen');
-
-        // Store
-        Route::post('/store', [BookingController::class, 'store'])->name('store');
-
-        // Search Users
-        Route::get('/search-users', [BookingController::class, 'searchUsers'])->name('search-users');
-
-        // Print & PDF
-        Route::get('/{booking}/print-form', [BookingController::class, 'printForm'])->name('print-form');
-        Route::get('/{booking}/download-pdf', [BookingController::class, 'downloadPDF'])->name('download-pdf');
-        Route::get('/{booking}/download-approved', [BookingController::class, 'downloadFormAfterApproved'])->name('download-approved');
-
-        // Approvals (PENTING: Letakkan SEBELUM generic route agar prioritasnya lebih tinggi)
-        Route::post('/{booking}/approve-dosen', [BookingController::class, 'approveByDosen'])->name('approve-dosen');
-        Route::post('/{booking}/approve-teknisi', [BookingController::class, 'approveByTeknisi'])->name('approve-teknisi');
-        Route::post('/{booking}/approve-kalab', [BookingController::class, 'approveByKalab'])->name('approve-kalab');
-
-        // Detail
-        Route::get('/{booking}', [BookingController::class, 'show'])->name('show');
-
-        // Actions
-        Route::post('/{booking}/reject', [BookingController::class, 'reject'])->name('reject');
-        Route::post('/{booking}/cancel', [BookingController::class, 'cancel'])->name('cancel');
-        Route::delete('/{booking}', [BookingController::class, 'destroy'])->name('destroy');
-    });
-
-    // ========================================================================
-    // 👨‍💼 ADMIN ROUTES (Middleware: admin)
-    // ========================================================================
-    Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
-
-        // Admin Dashboard
-        Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
-
-        // User Management
-        Route::prefix('users')->name('users.')->group(function () {
-            Route::get('/', [UserManagementController::class, 'index'])->name('index');
-            Route::get('/create', [UserManagementController::class, 'create'])->name('create');
-            Route::post('/', [UserManagementController::class, 'store'])->name('store');
-            Route::get('/{user}', [UserManagementController::class, 'show'])->name('show');
-            Route::get('/{user}/edit', [UserManagementController::class, 'edit'])->name('edit');
-            Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
-            Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
-
-            // Additional Tools
-            Route::post('/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->name('reset-password');
-            Route::post('/transfer-kalab', [UserManagementController::class, 'transferKalab'])->name('transfer-kalab');
-            Route::post('/{user}/toggle-kalab', [UserManagementController::class, 'toggleKalabStatus'])->name('toggle-kalab');
+        // ========================================================================
+        // 👤 PROFILE ROUTES
+        // ========================================================================
+        Route::prefix('profile')->name('profile.')->group(function () {
+            Route::get('/', [ProfileController::class, 'show'])->name('show');
+            Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
+            Route::put('/', [ProfileController::class, 'update'])->name('update');
+            Route::put('/password', [ProfileController::class, 'updatePassword'])->name('update-password');
         });
 
-        // Lab Management
-        Route::prefix('labs')->name('labs.')->group(function () {
-            Route::get('/', [LabManagementController::class, 'index'])->name('index');
-            Route::get('/create', [LabManagementController::class, 'create'])->name('create');
-            Route::post('/', [LabManagementController::class, 'store'])->name('store');
-            Route::get('/{lab}', [LabManagementController::class, 'show'])->name('show');
-            Route::get('/{lab}/edit', [LabManagementController::class, 'edit'])->name('edit');
-            Route::put('/{lab}', [LabManagementController::class, 'update'])->name('update');
-            Route::delete('/{lab}', [LabManagementController::class, 'destroy'])->name('destroy');
+        // ========================================================================
+        // ⚡ AJAX & API ROUTES
+        // ========================================================================
+        Route::prefix('dashboard')->name('dashboard.')->group(function () {
+            Route::post('/toggle-view-mode', [DashboardController::class, 'toggleViewMode'])->name('toggle-view-mode');
+            Route::post('/schedule-by-date', [DashboardController::class, 'getScheduleByDate'])->name('schedule-by-date');
         });
 
-        // Schedule Management
-        Route::prefix('schedule')->name('schedule.')->group(function () {
-            Route::get('/', [ScheduleController::class, 'index'])->name('index');
-            Route::get('/calendar', [ScheduleController::class, 'calendar'])->name('calendar');
-            Route::get('/available-slots', [ScheduleController::class, 'availableSlots'])->name('available-slots');
-            Route::get('/{booking}', [ScheduleController::class, 'show'])->name('show');
-            Route::post('/{booking}/update-status', [ScheduleController::class, 'updateStatus'])->name('update-status');
-            Route::post('/{booking}/cancel', [ScheduleController::class, 'cancel'])->name('cancel');
+        // ========================================================================
+        // 📋 BOOKING ROUTES
+        // ========================================================================
+        Route::prefix('booking')->name('booking.')->group(function () {
+
+            // Index
+            Route::get('/', [BookingController::class, 'index'])->name('index');
+
+            // Create Forms
+            Route::get('/create', [BookingController::class, 'create'])->name('create');
+            Route::get('/dosen-create', [BookingController::class, 'createDosen'])->name('create-dosen');
+
+            // Store
+            Route::post('/store', [BookingController::class, 'store'])->name('store');
+
+            // Search Users
+            Route::get('/search-users', [BookingController::class, 'searchUsers'])->name('search-users');
+
+            // Print & PDF
+            Route::get('/{booking}/print-form', [BookingController::class, 'printForm'])->name('print-form');
+            Route::get('/{booking}/download-pdf', [BookingController::class, 'downloadPDF'])->name('download-pdf');
+            Route::get('/{booking}/download-approved', [BookingController::class, 'downloadFormAfterApproved'])->name('download-approved');
+
+            // Approvals (PENTING: Letakkan SEBELUM generic route {booking})
+            Route::post('/{booking}/approve-dosen', [BookingController::class, 'approveByDosen'])->name('approve-dosen');
+            Route::post('/{booking}/approve-teknisi', [BookingController::class, 'approveByTeknisi'])->name('approve-teknisi');
+            Route::post('/{booking}/approve-kalab', [BookingController::class, 'approveByKalab'])->name('approve-kalab');
+
+            // Detail (Generic route - HARUS di paling bawah)
+            Route::get('/{booking}', [BookingController::class, 'show'])->name('show');
+
+            // Actions
+            Route::post('/{booking}/reject', [BookingController::class, 'reject'])->name('reject');
+            Route::post('/{booking}/cancel', [BookingController::class, 'cancel'])->name('cancel');
+            Route::delete('/{booking}', [BookingController::class, 'destroy'])->name('destroy');
         });
 
-        // Class Schedule Management
-        Route::prefix('class-schedules')->name('class-schedules.')->group(function () {
-            Route::get('/', [ClassScheduleController::class, 'index'])->name('index');
-            Route::get('/create', [ClassScheduleController::class, 'create'])->name('create');
-            Route::post('/', [ClassScheduleController::class, 'store'])->name('store');
-            Route::get('/{classSchedule}', [ClassScheduleController::class, 'show'])->name('show');
-            Route::get('/{classSchedule}/edit', [ClassScheduleController::class, 'edit'])->name('edit');
-            Route::put('/{classSchedule}', [ClassScheduleController::class, 'update'])->name('update');
-            Route::delete('/{classSchedule}', [ClassScheduleController::class, 'destroy'])->name('destroy');
+        // ========================================================================
+        // 👨‍💼 ADMIN ROUTES (Middleware: admin + prevent-back)
+        // ========================================================================
+        Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
+
+            // Admin Dashboard
+            Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
+
+            // User Management
+            Route::prefix('users')->name('users.')->group(function () {
+                Route::get('/', [UserManagementController::class, 'index'])->name('index');
+                Route::get('/create', [UserManagementController::class, 'create'])->name('create');
+                Route::post('/', [UserManagementController::class, 'store'])->name('store');
+                Route::get('/{user}', [UserManagementController::class, 'show'])->name('show');
+                Route::get('/{user}/edit', [UserManagementController::class, 'edit'])->name('edit');
+                Route::put('/{user}', [UserManagementController::class, 'update'])->name('update');
+                Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
+
+                // Additional Tools
+                Route::post('/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->name('reset-password');
+                Route::post('/transfer-kalab', [UserManagementController::class, 'transferKalab'])->name('transfer-kalab');
+                Route::post('/{user}/toggle-kalab', [UserManagementController::class, 'toggleKalabStatus'])->name('toggle-kalab');
+            });
+
+            // Lab Management
+            Route::prefix('labs')->name('labs.')->group(function () {
+                Route::get('/', [LabManagementController::class, 'index'])->name('index');
+                Route::get('/create', [LabManagementController::class, 'create'])->name('create');
+                Route::post('/', [LabManagementController::class, 'store'])->name('store');
+                Route::get('/{lab}', [LabManagementController::class, 'show'])->name('show');
+                Route::get('/{lab}/edit', [LabManagementController::class, 'edit'])->name('edit');
+                Route::put('/{lab}', [LabManagementController::class, 'update'])->name('update');
+                Route::delete('/{lab}', [LabManagementController::class, 'destroy'])->name('destroy');
+            });
+
+            // Schedule Management
+            Route::prefix('schedule')->name('schedule.')->group(function () {
+                Route::get('/', [ScheduleController::class, 'index'])->name('index');
+                Route::get('/calendar', [ScheduleController::class, 'calendar'])->name('calendar');
+                Route::get('/available-slots', [ScheduleController::class, 'availableSlots'])->name('available-slots');
+                Route::get('/{booking}', [ScheduleController::class, 'show'])->name('show');
+                Route::post('/{booking}/update-status', [ScheduleController::class, 'updateStatus'])->name('update-status');
+                Route::post('/{booking}/cancel', [ScheduleController::class, 'cancel'])->name('cancel');
+            });
+
+            // Class Schedule Management
+            Route::prefix('class-schedules')->name('class-schedules.')->group(function () {
+                Route::get('/', [ClassScheduleController::class, 'index'])->name('index');
+                Route::get('/create', [ClassScheduleController::class, 'create'])->name('create');
+                Route::post('/', [ClassScheduleController::class, 'store'])->name('store');
+                Route::get('/{classSchedule}', [ClassScheduleController::class, 'show'])->name('show');
+                Route::get('/{classSchedule}/edit', [ClassScheduleController::class, 'edit'])->name('edit');
+                Route::put('/{classSchedule}', [ClassScheduleController::class, 'update'])->name('update');
+                Route::delete('/{classSchedule}', [ClassScheduleController::class, 'destroy'])->name('destroy');
+            });
         });
     });
 });
