@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\User;
 use App\Models\Lab;
 use App\Models\ClassSchedule;
+use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +15,13 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class BookingController extends Controller
 {
+    protected $whatsapp;
+
+    public function __construct(WhatsAppService $whatsapp)
+    {
+        $this->whatsapp = $whatsapp;
+    }
+
     // ========================================================================
     // 📊 INDEX: Dashboard Booking (Role-Based dengan Dual Role Support)
     // ========================================================================
@@ -301,7 +309,7 @@ class BookingController extends Controller
     }
 
     // ========================================================================
-    // ✅ APPROVAL METHODS
+    // ✅ APPROVAL METHODS (Dengan WhatsApp Notification)
     // ========================================================================
 
     public function approveByKalab(Request $request, Booking $booking)
@@ -327,6 +335,15 @@ class BookingController extends Controller
             'kalab_id' => $user->id,
             'kalab_name' => $user->name,
         ]);
+
+        // ✅ WhatsApp: Notify user that booking is confirmed
+        if ($booking->user->phone) {
+            $this->whatsapp->sendApprovalNotification(
+                $booking->user->phone,
+                $booking,
+                '✅ DIKONFIRMASI - Silakan gunakan lab sesuai jadwal'
+            );
+        }
 
         return redirect()->route('booking.show', $booking)
             ->with('success', '🎉 Booking BERHASIL DIKONFIRMASI! Silakan gunakan lab sesuai jadwal.');
@@ -355,6 +372,15 @@ class BookingController extends Controller
             'dosen_id' => $user->id,
         ]);
 
+        // ✅ WhatsApp: Notify teknisi untuk approval selanjutnya
+        $teknisi = User::where('role', 'teknisi')
+            ->where('lab_name', $booking->lab_name)
+            ->first();
+
+        if ($teknisi && $teknisi->phone) {
+            $this->whatsapp->sendBookingNotification($teknisi->phone, $booking);
+        }
+
         return back()->with('success', '✅ Booking berhasil disetujui! Menunggu persetujuan teknisi.');
     }
 
@@ -382,11 +408,21 @@ class BookingController extends Controller
             'lab' => $booking->lab_name,
         ]);
 
+        // ✅ WhatsApp: Notify Kalab untuk approval final
+        $kalab = User::where(function($q) {
+                $q->where('is_kalab', true)
+                  ->orWhere('role', 'ketua_lab');
+            })->first();
+
+        if ($kalab && $kalab->phone) {
+            $this->whatsapp->sendBookingNotification($kalab->phone, $booking);
+        }
+
         return back()->with('success', '✅ Booking berhasil disetujui! Menunggu persetujuan Ka Lab.');
     }
 
     // ========================================================================
-    // ❌ REJECT & CANCEL
+    // ❌ REJECT & CANCEL (Dengan WhatsApp Notification)
     // ========================================================================
 
     public function reject(Request $request, Booking $booking)
@@ -415,6 +451,17 @@ class BookingController extends Controller
             'reason' => $validated['rejection_reason'],
         ]);
 
+        // ✅ WhatsApp: Notify user that booking was rejected
+        if ($booking->user->phone) {
+            $message = "*BOOKING DITOLAK*\n\n"
+                . "Lab: {$booking->lab_name}\n"
+                . "Tanggal: {$booking->booking_date}\n"
+                . "Alasan: {$validated['rejection_reason']}\n\n"
+                . "Silakan ajukan ulang dengan perbaikan.";
+
+            $this->whatsapp->send($booking->user->phone, $message);
+        }
+
         return back()->with('success', '❌ Booking ditolak. Alasan: ' . $validated['rejection_reason']);
     }
 
@@ -435,6 +482,18 @@ class BookingController extends Controller
             'rejected_at' => now(),
             'rejection_reason' => 'Dibatalkan oleh pemohon',
         ]);
+
+        // ✅ WhatsApp: Notify admin/kalab about cancellation
+        $admin = User::where('role', 'admin')->first();
+        if ($admin && $admin->phone) {
+            $message = "*BOOKING DIBATALKAN*\n\n"
+                . "User: {$booking->user->name}\n"
+                . "Lab: {$booking->lab_name}\n"
+                . "Tanggal: {$booking->booking_date}\n"
+                . "Alasan: Dibatalkan oleh pemohon";
+
+            $this->whatsapp->send($admin->phone, $message);
+        }
 
         return back()->with('success', '🗑️ Booking berhasil dibatalkan');
     }
@@ -497,7 +556,7 @@ class BookingController extends Controller
     }
 
     // ========================================================================
-    // 💾 STORE: Simpan Booking (Handle Kedua Role)
+    // 💾 STORE: Simpan Booking (Handle Kedua Role + WhatsApp Notification)
     // ========================================================================
     public function store(Request $request)
     {
@@ -512,7 +571,7 @@ class BookingController extends Controller
                 $validated = $request->validate($this->dosenRules(), $this->validationMessages());
             }
 
-            // ✅ CEK KONFLIK JADWAL
+            // ✅ CEK KONFLIK JADWAL - FIX: Pass excludeBookingId = null untuk create
             $startTime = $validated['start_time_custom'] ?? ($validated['start_time'] ?? '07:00');
             $endTime = $validated['end_time_custom'] ?? ($validated['end_time'] ?? '08:00');
 
@@ -520,7 +579,8 @@ class BookingController extends Controller
                 $validated['lab_name'],
                 $validated['booking_date'],
                 $startTime,
-                $endTime
+                $endTime,
+                null // excludeBookingId = null untuk create baru
             );
 
             if (!$conflict['available']) {
@@ -577,6 +637,27 @@ class BookingController extends Controller
                 'lab' => $validated['lab_name'],
                 'status' => $status,
             ]);
+
+            // ✅ WHATSAPP NOTIFICATION FLOW
+            if ($isMahasiswa) {
+                // Mahasiswa booking → Notify Dosen pembimbing (jika ada) atau semua dosen
+                $supervisor = $booking->supervisor_id
+                    ? User::find($booking->supervisor_id)
+                    : User::where('role', 'dosen')->first();
+
+                if ($supervisor && $supervisor->phone) {
+                    $this->whatsapp->sendBookingNotification($supervisor->phone, $booking);
+                }
+            } else {
+                // Dosen booking → Notify Teknisi lab terkait
+                $teknisi = User::where('role', 'teknisi')
+                    ->where('lab_name', $booking->lab_name)
+                    ->first();
+
+                if ($teknisi && $teknisi->phone) {
+                    $this->whatsapp->sendBookingNotification($teknisi->phone, $booking);
+                }
+            }
 
             $message = $isMahasiswa
                 ? '✅ Booking berhasil diajukan! Menunggu persetujuan: Dosen → Teknisi → Ka Lab.'
@@ -638,7 +719,7 @@ class BookingController extends Controller
     }
 
     // ========================================================================
-    // 🔧 HELPER METHODS (PRIVATE)
+    // 🔧 HELPER METHODS (PRIVATE) - ✅ UPDATED
     // ========================================================================
 
     private function getAvailableLabs(): array
@@ -777,32 +858,44 @@ class BookingController extends Controller
         return $validated['activity'];
     }
 
-    private function checkTimeSlotConflict(string $labName, string $bookingDate, string $startTime, string $endTime): array
+    // ========================================================================
+    // ✅ ✅ ✅ METHOD: checkTimeSlotConflict (SUDAH DIPERBAIKI)
+    // ========================================================================
+    private function checkTimeSlotConflict(string $labName, string $bookingDate, string $startTime, string $endTime, ?int $excludeBookingId = null): array
     {
-        $startTime = substr($startTime, 0, 5);
-        $endTime = substr($endTime, 0, 5);
+        // ✅ Normalize time format to HH:MM (handle '07:00:00' or '07:00')
+        $normalizeTime = fn($t) => $t ? substr($t, 0, 5) : '';
+        $startTime = $normalizeTime($startTime);
+        $endTime = $normalizeTime($endTime);
 
-        // Check Class Schedule
-        $dayName = Carbon::parse($bookingDate)->isoFormat('dddd');
+        // ✅ Get day name in Indonesian (ensure Carbon locale is set)
+        $dayName = Carbon::parse($bookingDate)->locale('id')->dayName; // 'Senin', 'Selasa', etc.
+
+        // ✅ Map Indonesian day to possible values in database (case-insensitive)
         $dayMap = [
-            'Senin' => ['Senin', 'Monday'],
-            'Selasa' => ['Selasa', 'Tuesday'],
-            'Rabu' => ['Rabu', 'Wednesday'],
-            'Kamis' => ['Kamis', 'Thursday'],
-            'Jumat' => ['Jumat', 'Friday'],
-            'Sabtu' => ['Sabtu', 'Saturday'],
-            'Minggu' => ['Minggu', 'Sunday'],
+            'Senin' => ['Senin', 'Monday', 'senin', 'monday'],
+            'Selasa' => ['Selasa', 'Tuesday', 'selasa', 'tuesday'],
+            'Rabu' => ['Rabu', 'Wednesday', 'rabu', 'wednesday'],
+            'Kamis' => ['Kamis', 'Thursday', 'kamis', 'thursday'],
+            'Jumat' => ['Jumat', 'Friday', 'jumat', 'friday'],
+            'Sabtu' => ['Sabtu', 'Saturday', 'sabtu', 'saturday'],
+            'Minggu' => ['Minggu', 'Sunday', 'minggu', 'sunday'],
         ];
         $possibleDays = $dayMap[$dayName] ?? [$dayName];
 
+        // ✅ Check Class Schedule conflicts
         $classSchedules = ClassSchedule::where('lab_name', $labName)
             ->whereIn('day', $possibleDays)
             ->where('status', 'active')
             ->get();
 
         foreach ($classSchedules as $schedule) {
-            $csStart = substr($schedule->start_time, 0, 5);
-            $csEnd = substr($schedule->end_time, 0, 5);
+            $csStart = $normalizeTime($schedule->start_time);
+            $csEnd = $normalizeTime($schedule->end_time);
+
+            if (empty($csStart) || empty($csEnd)) continue;
+
+            // ✅ Check time overlap: session overlaps if start < other_end AND end > other_start
             if ($startTime < $csEnd && $endTime > $csStart) {
                 return [
                     'available' => false,
@@ -812,20 +905,27 @@ class BookingController extends Controller
             }
         }
 
-        // Check Other Bookings
+        // ✅ Check Other Bookings conflicts
         $blockingStatuses = ['confirmed', 'pending', 'approved_dosen', 'approved_teknisi'];
+
         $conflictingBookings = Booking::where('lab_name', $labName)
             ->whereDate('booking_date', $bookingDate)
-            ->whereIn('status', $blockingStatuses)
-            ->where('id', '!=', request()->route('booking')?->id ?? 0)
-            ->with('user')
-            ->get();
+            ->whereIn('status', $blockingStatuses);
+
+        // ✅ Exclude current booking if updating (prevent self-conflict)
+        if ($excludeBookingId) {
+            $conflictingBookings->where('id', '!=', $excludeBookingId);
+        }
+
+        $conflictingBookings = $conflictingBookings->with('user')->get();
 
         foreach ($conflictingBookings as $booking) {
-            $bStart = substr($booking->start_time ?? '', 0, 5);
-            $bEnd = substr($booking->end_time ?? '', 0, 5);
+            $bStart = $normalizeTime($booking->start_time);
+            $bEnd = $normalizeTime($booking->end_time);
+
             if (empty($bStart) || empty($bEnd)) continue;
 
+            // ✅ Check time overlap - SAME LOGIC as class schedule
             if ($startTime < $bEnd && $endTime > $bStart) {
                 $statusLabel = match($booking->status) {
                     'confirmed' => 'sudah dikonfirmasi',

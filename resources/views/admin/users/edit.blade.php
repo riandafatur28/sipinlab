@@ -7,10 +7,37 @@
 
     <!-- Header -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">Edit User</h1>
+        <a href="{{ route('admin.users.index') }}" class="text-blue-600 hover:text-blue-800 mb-4 inline-flex items-center gap-2 text-sm font-medium">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Kembali ke Daftar User
+        </a>
+        <h1 class="text-3xl font-bold text-gray-800">✏️ Edit User</h1>
         <p class="text-gray-600">Update data pengguna</p>
     </div>
 
+    <!-- Flash Messages -->
+    @if(session('success'))
+    <div class="mb-6 p-4 bg-green-50 border border-green-300 rounded-lg text-green-800 flex items-center gap-3">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        {!! session('success') !!}
+    </div>
+    @endif
+
+    @if($errors->any())
+    <div class="mb-6 p-4 bg-red-50 border border-red-300 rounded-lg text-red-700">
+        <ul class="list-disc list-inside text-sm">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
+    <!-- Edit Form -->
     <form action="{{ route('admin.users.update', $user) }}" method="POST" class="bg-white rounded-xl shadow-lg p-8">
         @csrf
         @method('PUT')
@@ -19,17 +46,18 @@
         <div class="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
             <div class="flex items-center gap-4">
                 <div class="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                    {{ substr($user->name, 0, 1) }}
+                    {{ strtoupper(substr($user->name, 0, 1)) }}
                 </div>
                 <div class="flex-1">
                     <h3 class="text-xl font-bold text-gray-800">{{ $user->name }}</h3>
                     <p class="text-gray-600 text-sm">{{ $user->email }}</p>
                     <div class="flex items-center gap-2 mt-2">
                         <span class="inline-block px-3 py-1 text-xs rounded-full font-semibold
-                            @if($user->role === 'mahasiswa') bg-blue-100 text-blue-800
+                            @if($user->role === 'mahasiswa') bg-yellow-100 text-yellow-800
                             @elseif($user->role === 'dosen') bg-green-100 text-green-800
-                            @elseif($user->role === 'teknisi') bg-yellow-100 text-yellow-800
+                            @elseif($user->role === 'teknisi') bg-blue-100 text-blue-800
                             @elseif($user->role === 'ketua_lab') bg-purple-100 text-purple-800
+                            @elseif($user->role === 'admin') bg-red-100 text-red-800
                             @else bg-gray-100 text-gray-800 @endif">
                             {{ ucfirst(str_replace('_', ' ', $user->role)) }}
                         </span>
@@ -39,7 +67,7 @@
                             </span>
                         @endif
                         @if($user->is_kalab)
-                            <span class="badge-kalab">👔 Kalab</span>
+                            <span class="px-3 py-1 text-xs font-semibold rounded-full bg-indigo-600 text-white">👔 Kalab</span>
                         @endif
                     </div>
                 </div>
@@ -60,19 +88,26 @@
             <input type="email" name="email" value="{{ old('email', $user->email) }}" required
                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('email') border-red-500 @enderror">
             @error('email') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+            <p class="mt-1 text-xs text-gray-500">
+                @if($user->role === 'mahasiswa')
+                    Domain harus: @student.polije.ac.id
+                @else
+                    Domain harus: @polije.ac.id
+                @endif
+            </p>
         </div>
 
         <!-- NIM/NIP (Read-only) -->
         <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">{{ $user->isMahasiswa() ? 'NIM' : 'NIP' }}</label>
-            <input type="text" value="{{ $user->isMahasiswa() ? $user->nim : $user->nip }}"
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ $user->role === 'mahasiswa' ? '🎓 NIM' : '👨‍🏫 NIP' }}</label>
+            <input type="text" value="{{ $user->role === 'mahasiswa' ? ($user->nim ?? '-') : ($user->nip ?? '-') }}"
                    class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600" readonly>
-            <p class="mt-1 text-xs text-gray-500">Tidak dapat diubah</p>
+            <p class="mt-1 text-xs text-gray-500">Tidak dapat diubah setelah dibuat</p>
         </div>
 
         <!-- Role (Read-only) -->
         <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Role / Jabatan</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">🔐 Role / Jabatan</label>
             <input type="text" value="{{ ucfirst(str_replace('_', ' ', $user->role)) }}"
                    class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600" readonly>
             <p class="mt-1 text-sm text-gray-500">Role tidak dapat diubah. Hapus dan buat user baru jika perlu mengubah role.</p>
@@ -80,24 +115,59 @@
 
         <!-- Phone -->
         <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">No. Telepon / WhatsApp</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">📱 No. Telepon / WhatsApp</label>
             <input type="text" name="phone" value="{{ old('phone', $user->phone) }}" placeholder="Contoh: 081234567890"
                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('phone') border-red-500 @enderror">
             @error('phone') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
         </div>
 
+        <!-- Lab Assignment (Hanya untuk Teknisi) -->
+        @if($user->role === 'teknisi')
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <label class="block text-sm font-medium text-blue-800 mb-2">🏢 Laboratorium Ditugaskan</label>
+            <input type="text" name="lab_name" value="{{ old('lab_name', $user->lab_name) }}" placeholder="Contoh: Multimedia Cerdas (MMC)"
+                   class="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('lab_name') border-red-500 @enderror">
+            @error('lab_name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+            <p class="mt-1 text-xs text-blue-600">Nama lab tempat teknisi ini ditugaskan</p>
+        </div>
+        @endif
+
+        <!-- Kalab Toggle (Hanya untuk Dosen/Ketua Lab) -->
+        @if(in_array($user->role, ['dosen', 'ketua_lab']))
+        <div class="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" name="is_kalab" value="1" {{ $user->is_kalab ? 'checked' : '' }}
+                       class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                <div>
+                    <span class="text-sm font-medium text-indigo-800">👔 Akses Ketua Laboratorium (Kalab)</span>
+                    <p class="text-xs text-indigo-600 mt-1">Berikan akses management booking untuk user ini</p>
+                </div>
+            </label>
+        </div>
+        @endif
+
         <!-- Action Buttons -->
         <div class="mt-8 pt-6 border-t border-gray-200">
             <div class="flex flex-wrap gap-3">
 
+                <!-- Reset Password Button -->
+                <button type="button" onclick="openModal('resetPasswordModal')"
+                        class="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium hover:bg-orange-200 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Reset Password
+                </button>
 
                 <!-- Delete User Button -->
-                @if($user->role !== 'admin')
+                @if($user->id !== Auth::id())
                 <button type="button" onclick="openModal('deleteModal')"
                         class="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     Hapus User
                 </button>
+                @else
+                <span class="px-4 py-2 bg-gray-100 text-gray-400 rounded-lg text-sm font-medium cursor-not-allowed">
+                    🔒 Tidak bisa hapus akun sendiri
+                </span>
                 @endif
             </div>
         </div>
@@ -110,7 +180,9 @@
     </form>
 </div>
 
-{{-- <!-- ✅ MODAL: Reset Password -->
+<!-- ======================================================================== -->
+<!-- ✅ MODAL: Reset Password -->
+<!-- ======================================================================== -->
 <div id="resetPasswordModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeModal('resetPasswordModal')"></div>
     <div class="fixed inset-0 z-10 overflow-y-auto">
@@ -131,11 +203,11 @@
                         </div>
                         <div>
                             <p class="text-gray-700 font-medium">Reset password user ini?</p>
-                            <p class="text-sm text-gray-500 mt-1">Password akan direset ke: <strong class="text-orange-600">{{ $user->nim ?? $user->nip ?? explode('@', $user->email)[0] }}</strong></p>
+                            <p class="text-sm text-gray-500 mt-1">Password akan direset ke: <strong class="text-orange-600">{{ $user->role === 'mahasiswa' ? ($user->nim ?? explode('@', $user->email)[0]) : ($user->nip ?? explode('@', $user->email)[0]) }}</strong></p>
                         </div>
                     </div>
                     <div class="p-3 bg-gray-50 rounded-lg">
-                        <p class="text-sm text-gray-600"><strong>{{ $user->name }}</strong> <span class="text-gray-400">({{ $user->email }})</span></p>
+                        <p class="text-sm text-gray-700"><strong>{{ $user->name }}</strong> <span class="text-gray-400">({{ $user->email }})</span></p>
                     </div>
                 </div>
                 <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
@@ -148,9 +220,11 @@
             </div>
         </div>
     </div>
-</div> --}}
+</div>
 
+<!-- ======================================================================== -->
 <!-- ✅ MODAL: Delete User -->
+<!-- ======================================================================== -->
 <div id="deleteModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeModal('deleteModal')"></div>
     <div class="fixed inset-0 z-10 overflow-y-auto">
@@ -178,7 +252,7 @@
                         <p class="text-sm text-gray-700"><strong>{{ $user->name }}</strong></p>
                         <p class="text-xs text-gray-500 mt-1">{{ $user->email }} • {{ ucfirst(str_replace('_', ' ', $user->role)) }} @if($user->lab_name) • {{ $user->lab_name }} @endif</p>
                     </div>
-                    @if($user->isKalab())
+                    @if($user->is_kalab)
                     <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <p class="text-xs text-yellow-700">⚠️ User ini adalah <strong>Kalab</strong>. Jabatan Kalab akan otomatis dicopot.</p>
                     </div>
@@ -197,57 +271,68 @@
     </div>
 </div>
 
-@endsection
-
-@push('scripts')
+<!-- ======================================================================== -->
+{{-- <!-- ✅ INLINE SCRIPTS (TANPA @push/@endpush - Langsung di dalam @section) --> --}}
+<!-- ======================================================================== -->
 <script>
-// ✅ Modal Functions - Inline fallback jika @stack tidak bekerja
 (function() {
-    // Debug: Cek apakah script loaded
-    console.log('🎭 Modal script loaded');
+    'use strict';
 
-    window.openModal = function(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            console.log('🔓 Opening modal:', modalId);
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            setTimeout(() => {
-                const firstBtn = modal.querySelector('button');
-                if (firstBtn) firstBtn.focus();
-            }, 100);
-        } else {
-            console.error('❌ Modal not found:', modalId);
-        }
-    };
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 
-    window.closeModal = function(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            console.log('🔒 Closing modal:', modalId);
-            modal.classList.add('hidden');
-            document.body.style.overflow = '';
-        }
-    };
+    function init() {
+        console.log('🎭 Modal script initialized');
 
-    // Close with Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            document.querySelectorAll('[id$="Modal"]:not(.hidden)').forEach(m => closeModal(m.id));
-        }
-    });
+        // Open modal function
+        window.openModal = function(modalId) {
+            var modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+        };
 
-    // Close when clicking backdrop
-    document.querySelectorAll('[id$="Modal"] > div:first-child').forEach(backdrop => {
-        backdrop.addEventListener('click', function() {
-            closeModal(this.parentElement.id);
+        // Close modal function
+        window.closeModal = function(modalId) {
+            var modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        };
+
+        // Close with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                var modals = document.querySelectorAll('[id$="Modal"]:not(.hidden)');
+                for (var i = 0; i < modals.length; i++) {
+                    closeModal(modals[i].id);
+                }
+            }
         });
-    });
 
-    // Prevent modal panel click from closing
-    document.querySelectorAll('[id$="Modal"] .bg-white').forEach(panel => {
-        panel.addEventListener('click', e => e.stopPropagation());
-    });
+        // Close when clicking backdrop
+        var backdrops = document.querySelectorAll('[id$="Modal"] > div:first-child');
+        for (var i = 0; i < backdrops.length; i++) {
+            backdrops[i].addEventListener('click', function() {
+                closeModal(this.parentElement.id);
+            });
+        }
+
+        // Prevent modal panel click from closing
+        var panels = document.querySelectorAll('[id$="Modal"] .bg-white');
+        for (var i = 0; i < panels.length; i++) {
+            panels[i].addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+    }
 })();
 </script>
-@endpush
+
+@endsection

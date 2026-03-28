@@ -19,6 +19,16 @@ use App\Http\Controllers\BookingController;
 */
 
 // ============================================================================
+// ✅ ROOT ROUTE: Public Schedule (Landing Page - No Login Required)
+// ============================================================================
+Route::get('/', [DashboardController::class, 'publicSchedule'])->name('home');
+
+// ============================================================================
+// 📅 PUBLIC SCHEDULE (No Login Required)
+// ============================================================================
+Route::get('/jadwal', [DashboardController::class, 'publicSchedule'])->name('public.schedule');
+
+// ============================================================================
 // GUEST ROUTES (Belum Login)
 // ============================================================================
 Route::middleware('guest')->group(function () {
@@ -43,11 +53,10 @@ Route::middleware('guest')->group(function () {
 // ============================================================================
 Route::middleware('auth')->group(function () {
 
-    // 🔐 Logout (hanya butuh auth, TIDAK perlu prevent-back karena akan redirect ke login)
+    // 🔐 Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
     // ✅ Semua route authenticated lainnya dengan middleware 'prevent-back'
-    //    (Outer group sudah punya 'auth', jadi inner cukup 'prevent-back' saja)
     Route::middleware('prevent-back')->group(function () {
 
         // ========================================================================
@@ -172,12 +181,8 @@ Route::middleware('auth')->group(function () {
 });
 
 // ============================================================================
-// FALLBACK & PUBLIC ROUTES
+// HEALTH CHECK
 // ============================================================================
-Route::get('/', function () {
-    return redirect()->route('login');
-});
-
 Route::get('/health', function () {
     return response()->json([
         'status' => 'ok',

@@ -15,7 +15,7 @@
         <!-- LOGO -->
         <div class="flex justify-center mb-6">
             <div class="bg-white p-4 rounded-full border-2 border-blue-500 shadow-md">
-                <img src="{{ asset('img/polije.png') }}"
+                <img src="<?php echo e(asset('img/polije.png')); ?>"
                      alt="Logo Polije"
                      class="w-20 h-20 object-contain transition duration-300 hover:scale-110">
             </div>
@@ -26,14 +26,14 @@
 
         <!-- Link ke jadwal publik -->
 <div class="text-center mb-4">
-    <a href="{{ route('public.schedule') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+    <a href="<?php echo e(route('public.schedule')); ?>" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
         📅 Lihat Jadwal Laboratorium (Tanpa Login)
     </a>
 </div>
 
         <!-- FORM -->
-        <form method="POST" action="{{ route('login') }}" class="space-y-6 bg-white p-8 rounded-2xl shadow-xl">
-            @csrf
+        <form method="POST" action="<?php echo e(route('login')); ?>" class="space-y-6 bg-white p-8 rounded-2xl shadow-xl">
+            <?php echo csrf_field(); ?>
 
             <!-- EMAIL -->
             <div>
@@ -85,7 +85,7 @@
                     <span class="text-sm text-gray-600">Ingat saya</span>
                 </label>
 
-                <a href="{{ route('password.request') }}" class="text-sm text-blue-600 hover:underline">
+                <a href="<?php echo e(route('password.request')); ?>" class="text-sm text-blue-600 hover:underline">
                     Lupa Password?
                 </a>
             </div>
@@ -99,7 +99,7 @@
 
         <!-- FOOTER -->
         <div class="mt-6 text-center text-sm text-gray-500">
-            © {{ date('Y') }} Politeknik Negeri Jember
+            © <?php echo e(date('Y')); ?> Politeknik Negeri Jember
         </div>
     </div>
 
@@ -124,3 +124,4 @@
 
 </body>
 </html>
+<?php /**PATH D:\project\laravel_project\sipinlab\resources\views/auth/login.blade.php ENDPATH**/ ?>

@@ -13,136 +13,109 @@ class WhatsAppService
 
     public function __construct()
     {
-        $this->provider = config('whatsapp.provider', 'fonnte');
+        $this->provider = config('whatsapp.provider', 'wablas');
         $this->setupProvider();
     }
 
     protected function setupProvider()
     {
-        if ($this->provider === 'fonnte') {
-            $this->baseUrl = 'https://api.fonnte.com/send'; // ✅ Hapus spasi
-            $this->apiKey = config('whatsapp.fonnte.api_key');
-        } elseif ($this->provider === 'wablas') {
-            $domain = rtrim(config('whatsapp.wablas.domain', 'https://solo.wablas.com'), '/');
+        if ($this->provider === 'wablas') {
+            $domain = rtrim(config('whatsapp.wablas.domain'), '/');
             $this->baseUrl = $domain . '/api/send-message';
             $this->apiKey = config('whatsapp.wablas.token');
-        } elseif ($this->provider === 'twilio') {
-            $accountSid = config('whatsapp.twilio.account_sid');
-            $this->baseUrl = "https://api.twilio.com/2010-04-01/Accounts/{$accountSid}/Messages.json";
-            $this->apiKey = config('whatsapp.twilio.auth_token');
         }
     }
 
-    public function sendOTP($phoneNumber, $otp)
+    // =========================================================
+    // 🔑 CORE SEND MESSAGE
+    // =========================================================
+    public function send($phone, $message)
     {
-        // Jika development & tidak ada API key, return mock success
-        if (app()->environment('local', 'development') && empty($this->apiKey)) {
-            Log::info('[DEV MODE] OTP WhatsApp:', ['phone' => $phoneNumber, 'otp' => $otp]);
-            return ['status' => true, 'message' => 'Development mode - OTP: ' . $otp];
-        }
+        $phone = $this->formatPhoneNumber($phone);
 
-        $message = $this->generateOTPMessage($otp);
-
-        return match($this->provider) {
-            'fonnte' => $this->sendViaFonnte($phoneNumber, $message),
-            'wablas' => $this->sendViaWablas($phoneNumber, $message),
-            'twilio' => $this->sendViaTwilio($phoneNumber, $message),
-            default => throw new \Exception('WhatsApp provider tidak valid: ' . $this->provider),
-        };
-    }
-
-    protected function generateOTPMessage($otp)
-    {
-        return "*POLITEKNIK NEGERI JEMBER*\n\n" .
-               "Kode OTP Anda: *{$otp}*\n\n" .
-               "Kode ini berlaku selama 5 menit.\n" .
-               "Jangan berikan kode ini kepada siapapun.\n\n" .
-               "Jika Anda tidak meminta reset password, abaikan pesan ini.\n\n" .
-               "_Sistem Informasi Akademik Polije_";
-    }
-
-    protected function sendViaFonnte($phoneNumber, $message)
-    {
         try {
-            $response = Http::timeout(30)->withHeaders([
-                'Authorization' => $this->apiKey,
-            ])->asForm()->post($this->baseUrl, [
-                'target' => $phoneNumber,
-                'message' => $message,
-            ]);
-
-            $data = $response->json();
-            return ['status' => ($response->successful() && ($data['status'] ?? false) === true), ...$data];
-        } catch (\Exception $e) {
-            Log::error('Fonnte Error: ' . $e->getMessage());
-            return ['status' => false, 'message' => $e->getMessage()];
-        }
-    }
-
-    protected function sendViaWablas($phoneNumber, $message)
-    {
-        try {
-            $response = Http::timeout(30)->post($this->baseUrl, [
-                'phone' => $phoneNumber,
+            $response = Http::post($this->baseUrl, [
+                'phone' => $phone,
                 'message' => $message,
                 'token' => $this->apiKey,
             ]);
 
-            $data = $response->json();
-            return ['status' => $response->successful() && ($data['status'] ?? false) === true, ...$data];
-        } catch (\Exception $e) {
-            Log::error('Wablas Error: ' . $e->getMessage());
-            return ['status' => false, 'message' => $e->getMessage()];
-        }
-    }
-
-    protected function sendViaTwilio($phoneNumber, $message)
-    {
-        try {
-            $response = Http::timeout(30)->withBasicAuth(
-                config('whatsapp.twilio.account_sid'),
-                $this->apiKey
-            )->asForm()->post($this->baseUrl, [
-                'From' => 'whatsapp:' . config('whatsapp.twilio.from_number'),
-                'To' => 'whatsapp:' . $phoneNumber,
-                'Body' => $message,
+            Log::info('WA Sent', [
+                'phone' => $phone,
+                'message' => $message
             ]);
 
-            $data = $response->json();
-            return ['status' => $response->successful() && isset($data['sid']), ...$data];
+            return $response->json();
         } catch (\Exception $e) {
-            Log::error('Twilio Error: ' . $e->getMessage());
-            return ['status' => false, 'message' => $e->getMessage()];
+            Log::error('WA Error: ' . $e->getMessage());
+            return false;
         }
     }
 
-    public function formatPhoneNumber($phoneNumber)
+    // =========================================================
+    // 🔐 OTP
+    // =========================================================
+    public function sendOTP($phone, $otp)
     {
-        if (empty($phoneNumber)) return null;
-
-        $phoneNumber = preg_replace('/[^0-9+]/', '', $phoneNumber);
-
-        if (str_starts_with($phoneNumber, '+')) {
-            $phoneNumber = substr($phoneNumber, 1);
-        }
-
-        if (str_starts_with($phoneNumber, '0')) {
-            $phoneNumber = '62' . substr($phoneNumber, 1);
-        } elseif (!str_starts_with($phoneNumber, '62')) {
-            $phoneNumber = '62' . $phoneNumber;
-        }
-
-        return $phoneNumber;
+        $message = "*OTP RESET PASSWORD*\n\nKode: *$otp*\nBerlaku 5 menit.";
+        return $this->send($phone, $message);
     }
 
-    /**
-     * Cek apakah service siap digunakan
-     */
-    public function isConfigured(): bool
+    // =========================================================
+    // 📥 BOOKING BARU (KE DOSEN / TEKNISI / KALAB)
+    // =========================================================
+    public function sendBookingNotification($phone, $booking)
     {
-        if (app()->environment('local', 'development')) {
-            return true; // Always true in dev mode
+        $link = url('/booking/' . $booking->id);
+
+        $message = "*BOOKING BARU*\n\n"
+            . "Nama: {$booking->user->name}\n"
+            . "Lab: {$booking->lab_name}\n"
+            . "Tanggal: {$booking->booking_date}\n\n"
+            . "Silakan ACC:\n$link";
+
+        return $this->send($phone, $message);
+    }
+
+    // =========================================================
+    // ✅ APPROVAL
+    // =========================================================
+    public function sendApprovalNotification($phone, $booking, $status)
+    {
+        $message = "*STATUS BOOKING*\n\n"
+            . "Lab: {$booking->lab_name}\n"
+            . "Tanggal: {$booking->booking_date}\n"
+            . "Status: *$status*";
+
+        return $this->send($phone, $message);
+    }
+
+    // =========================================================
+    // ⏰ REMINDER
+    // =========================================================
+    public function sendReminder($phone, $booking, $type = 'start')
+    {
+        $time = $type === 'start' ? $booking->start_time : $booking->end_time;
+
+        $message = "*REMINDER*\n\n"
+            . "Lab: {$booking->lab_name}\n"
+            . "Waktu: $time\n\n"
+            . "15 menit lagi sesi akan " . ($type === 'start' ? 'dimulai' : 'berakhir');
+
+        return $this->send($phone, $message);
+    }
+
+    // =========================================================
+    // 📞 FORMAT NOMOR
+    // =========================================================
+    public function formatPhoneNumber($phone)
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        if (str_starts_with($phone, '0')) {
+            return '62' . substr($phone, 1);
         }
-        return !empty($this->apiKey);
+
+        return $phone;
     }
 }

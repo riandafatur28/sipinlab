@@ -695,6 +695,139 @@ class DashboardController extends Controller
     }
 
     /**
+ * Public schedule page - Simple table view (no login required)
+ */
+public function publicSchedule(Request $request)
+{
+    $date = $request->get('date', date('Y-m-d'));
+    $search = $request->get('search', '');
+    $selectedLab = $request->get('lab', '');
+
+    // Get all active labs
+    $labs = Lab::where('status', 'active')->orderBy('name')->pluck('name')->toArray();
+
+    // Get day name
+    $dayName = Carbon::parse($date)->locale('id')->dayName;
+    $dayMap = [
+        'Senin' => ['Senin', 'Monday'], 'Selasa' => ['Selasa', 'Tuesday'],
+        'Rabu' => ['Rabu', 'Wednesday'], 'Kamis' => ['Kamis', 'Thursday'],
+        'Jumat' => ['Jumat', 'Friday'], 'Sabtu' => ['Sabtu', 'Saturday'],
+        'Minggu' => ['Minggu', 'Sunday'],
+    ];
+    $possibleDays = $dayMap[$dayName] ?? [$dayName];
+
+    // Get class schedules
+    $classSchedules = ClassSchedule::whereIn('day', $possibleDays)
+        ->where('status', 'active')
+        ->orderBy('start_time')
+        ->get();
+
+    // Get confirmed bookings
+    $bookings = Booking::whereDate('booking_date', $date)
+        ->whereIn('status', ['confirmed', 'approved_teknisi', 'approved_kalab'])
+        ->orderBy('start_time')
+        ->get();
+
+    // Build schedule data per lab
+    $scheduleData = [];
+    $sessions = [
+        ['start' => '07:00', 'end' => '08:00', 'session' => 'Sesi 1'],
+        ['start' => '08:00', 'end' => '09:00', 'session' => 'Sesi 2'],
+        ['start' => '09:00', 'end' => '10:00', 'session' => 'Sesi 3'],
+        ['start' => '10:00', 'end' => '11:00', 'session' => 'Sesi 4'],
+        ['start' => '11:00', 'end' => '13:00', 'session' => 'Istirahat', 'is_break' => true],
+        ['start' => '13:00', 'end' => '14:00', 'session' => 'Sesi 5'],
+        ['start' => '14:00', 'end' => '15:00', 'session' => 'Sesi 6'],
+        ['start' => '15:00', 'end' => '16:00', 'session' => 'Sesi 7'],
+        ['start' => '16:00', 'end' => '17:00', 'session' => 'Sesi 8'],
+    ];
+
+    foreach ($labs as $labName) {
+        if ($selectedLab && $selectedLab !== $labName) continue;
+
+        $labSchedules = [];
+        foreach ($sessions as $index => $session) {
+            if ($session['is_break'] ?? false) {
+                $labSchedules[] = [
+                    'no' => $index + 1,
+                    'session' => $session['session'],
+                    'start' => $session['start'],
+                    'end' => $session['end'],
+                    'is_break' => true,
+                    'status' => 'break',
+                    'status_label' => 'Istirahat',
+                    'status_color' => 'gray',
+                ];
+                continue;
+            }
+
+            $isBooked = false;
+            $bookingInfo = '';
+            $status = 'tersedia';
+            $statusLabel = 'Tersedia';
+            $statusColor = 'green';
+
+            // Check class schedule conflict
+            foreach ($classSchedules->where('lab_name', $labName) as $cs) {
+                $csStart = substr($cs->start_time, 0, 5);
+                $csEnd = substr($cs->end_time, 0, 5);
+                if ($session['start'] < $csEnd && $session['end'] > $csStart) {
+                    $isBooked = true;
+                    $status = 'terisi';
+                    $statusLabel = 'Kuliah';
+                    $statusColor = 'red';
+                    $bookingInfo = $cs->course_name . ' (Gol. ' . $cs->golongan . ')';
+                    break;
+                }
+            }
+
+            // Check booking conflict
+            if (!$isBooked) {
+                foreach ($bookings->where('lab_name', $labName) as $booking) {
+                    $bStart = substr($booking->start_time ?? '', 0, 5);
+                    $bEnd = substr($booking->end_time ?? '', 0, 5);
+                    if (empty($bStart) || empty($bEnd)) continue;
+                    if ($session['start'] < $bEnd && $session['end'] > $bStart) {
+                        $isBooked = true;
+                        $status = 'terisi';
+                        $statusLabel = 'Dipinjam';
+                        $statusColor = 'yellow';
+                        $bookingInfo = $booking->activity;
+                        break;
+                    }
+                }
+            }
+
+            $labSchedules[] = [
+                'no' => $index + 1,
+                'session' => $session['session'],
+                'start' => $session['start'],
+                'end' => $session['end'],
+                'is_break' => false,
+                'status' => $status,
+                'status_label' => $statusLabel,
+                'status_color' => $statusColor,
+                'booking_info' => $bookingInfo,
+            ];
+        }
+
+        // Search filter
+        if ($search) {
+            $labSchedules = array_filter($labSchedules, function($item) use ($search) {
+                return stripos($item['booking_info'] ?? '', $search) !== false ||
+                       stripos($item['status_label'], $search) !== false;
+            });
+        }
+
+        $scheduleData[$labName] = $labSchedules;
+    }
+
+    return view('public.schedule', compact(
+        'labs', 'date', 'search', 'selectedLab', 'dayName', 'scheduleData'
+    ));
+}
+
+    /**
      * ✅ API endpoint untuk filter jadwal via kalender (AJAX)
      */
     public function getScheduleByDate(Request $request)

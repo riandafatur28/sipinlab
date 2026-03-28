@@ -1,324 +1,582 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<title>Form Peminjaman Lab</title>
+    <meta charset="UTF-8">
+    <title>Form Peminjaman Ruang Laboratorium</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 15mm;
+        }
 
-<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-@page{
-    size:A4;
-    margin:15mm;
-}
+        body {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 10pt;
+            line-height: 1.3;
+        }
 
-body{
-    font-family:"Times New Roman", serif;
-    font-size:12px;
-}
+        /* Header - Compact */
+        .header-box {
+            border: 1px solid #000;
+            padding: 5px;
+            margin-bottom: 8px;
+        }
 
-table{
-    width:100%;
-    border-collapse:collapse;
-}
+        .header-content {
+            display: flex;
+            align-items: center;
+        }
 
-.header-table td{
-    border:1px solid #000;
-    padding:6px;
-    vertical-align:middle;
-}
+        .header-left {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            border-right: 1px solid #000;
+            padding-right: 8px;
+        }
 
-.logo{
-    width:70px;
-    text-align:center;
-}
+        .logo-circle {
+            width: 35px;
+            height: 35px;
+            border: 1px solid #000;
+            border-radius: 50%;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
 
-.logo img{
-    width:60px;
-}
+        .header-text {
+            font-size: 9pt;
+            line-height: 1.2;
+        }
 
-.title{
-    text-align:center;
-    font-weight:bold;
-    margin:12px 0;
-}
+        .header-text h3 {
+            font-size: 10pt;
+            margin: 1px 0;
+            font-weight: bold;
+        }
 
-.section{
-    margin-top:10px;
-}
+        .header-text p {
+            font-size: 8pt;
+            margin: 1px 0;
+        }
 
-.row{
-    display:flex;
-}
+        .header-right {
+            width: 200px;
+            padding-left: 8px;
+            font-size: 7pt;
+        }
 
-.label{
-    width:150px;
-}
+        .header-right table {
+            width: 100%;
+            border-collapse: collapse;
+        }
 
-.checkbox{
-    width:12px;
-    height:12px;
-    border:1px solid #000;
-    display:inline-block;
-    margin-right:5px;
-}
+        .header-right td {
+            padding: 1px 0;
+            vertical-align: top;
+        }
 
-.checked{
-    background:black;
-}
+        .header-right .label {
+            width: 75px;
+            font-weight: bold;
+        }
 
-.ttd{
-    margin-top:40px;
-}
+        .header-bottom {
+            border-top: 1px solid #000;
+            margin-top: 4px;
+            padding-top: 3px;
+            font-size: 7pt;
+            text-align: center;
+        }
 
-.ttd table td{
-    text-align:center;
-}
+        .form-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 11pt;
+            margin: 8px 0 12px 0;
+            text-decoration: underline;
+        }
 
-.line{
-    border-top:1px solid #000;
-    width:200px;
-    margin:40px auto 5px auto;
-}
+        /* Content */
+        .content {
+            margin-bottom: 8px;
+        }
 
-</style>
+        .intro {
+            margin-bottom: 6px;
+            font-size: 10pt;
+        }
+
+        .form-row {
+            margin-bottom: 4px;
+        }
+
+        .form-row::after {
+            content: "";
+            display: block;
+            clear: both;
+        }
+
+        .form-label {
+            float: left;
+            width: 160px;
+            font-size: 10pt;
+        }
+
+        .form-dots {
+            margin-left: 165px;
+            border-bottom: 1px dotted #000;
+            min-height: 14px;
+            font-size: 10pt;
+        }
+
+        .members-section {
+            margin-left: 165px;
+            margin-bottom: 8px;
+        }
+
+        .members-section div {
+            margin-bottom: 2px;
+            font-size: 10pt;
+        }
+
+        .members-num {
+            display: inline-block;
+            width: 20px;
+        }
+
+        .members-dots {
+            display: inline-block;
+            width: calc(100% - 25px);
+            border-bottom: 1px dotted #000;
+        }
+
+        /* Checkbox */
+        .checkbox-section {
+            margin-bottom: 8px;
+        }
+
+        .checkbox-title {
+            margin-bottom: 4px;
+            font-size: 10pt;
+        }
+
+        .checkbox-item {
+            margin-left: 15px;
+            margin-bottom: 2px;
+            font-size: 10pt;
+        }
+
+        .checkbox-box {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            border: 1px solid #000;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        .checkbox-box.checked {
+            background: #000;
+        }
+
+        /* Time Section */
+        .time-section {
+            margin-bottom: 8px;
+            font-size: 10pt;
+        }
+
+        .time-row {
+            margin-bottom: 4px;
+        }
+
+        .time-row::after {
+            content: "";
+            display: block;
+            clear: both;
+        }
+
+        .time-label {
+            float: left;
+            width: 130px;
+        }
+
+        .time-dots {
+            float: left;
+            width: 120px;
+            border-bottom: 1px dotted #000;
+            margin-right: 20px;
+        }
+
+        .time-label-right {
+            float: left;
+            width: 140px;
+        }
+
+        .time-dots-right {
+            float: left;
+            width: 140px;
+            border-bottom: 1px dotted #000;
+        }
+
+        /* Statement */
+        .statement-section {
+            margin-bottom: 8px;
+        }
+
+        .statement-intro {
+            margin-bottom: 4px;
+            font-size: 10pt;
+        }
+
+        .statement-list {
+            margin-left: 20px;
+            margin-bottom: 6px;
+        }
+
+        .statement-list ol {
+            font-size: 9pt;
+        }
+
+        .statement-list li {
+            margin-bottom: 3px;
+            text-align: justify;
+        }
+
+        .statement-list strong {
+            font-weight: bold;
+        }
+
+        .statement-note {
+            font-size: 9pt;
+        }
+
+        /* Signatures */
+        .signatures {
+            margin-top: 15px;
+        }
+
+        .sig-row {
+            margin-bottom: 15px;
+        }
+
+        .sig-row::after {
+            content: "";
+            display: block;
+            clear: both;
+        }
+
+        .sig-box {
+            float: left;
+            width: 48%;
+            text-align: center;
+        }
+
+        .sig-box.right {
+            float: right;
+        }
+
+        .sig-title {
+            min-height: 45px;
+            margin-bottom: 3px;
+            font-size: 10pt;
+        }
+
+        .sig-line {
+            border-bottom: 1px solid #000;
+            width: 160px;
+            margin: 35px auto 3px auto;
+            height: 15px;
+        }
+
+        .sig-name {
+            font-size: 9pt;
+            margin-top: 3px;
+        }
+
+        .kalab-name {
+            font-weight: bold;
+            text-decoration: underline;
+            margin-top: 30px;
+            font-size: 9pt;
+        }
+
+        .clearfix::after {
+            content: "";
+            display: block;
+            clear: both;
+        }
+    </style>
 </head>
-
 <body>
-
-<!-- HEADER -->
-
-<table class="header-table">
-
-<tr>
-
-<td class="logo">
-<img src="{{ asset('logo.png') }}">
-</td>
-
-<td>
-<b>POLITEKNIK NEGERI JEMBER</b><br>
-JURUSAN TEKNOLOGI INFORMASI
-</td>
-
-<td width="220">
-No Dokumen : FORM-LAB-{{ $booking->id }}<br>
-Tanggal : {{ \Carbon\Carbon::parse($approvalDate)->format('d-m-Y') }}
-</td>
-
-</tr>
-
-</table>
-
-<div class="title">
-FORM PEMINJAMAN RUANG LABORATORIUM
-</div>
-
-<div class="section">
-Saya yang bertandatangan dibawah ini selaku peminjam
-</div>
-
-
-<!-- IDENTITAS -->
-
-<div class="row">
-<div class="label">Nama / NIM</div>
-<div>: {{ $booking->user->name }} / {{ $booking->user->nim }}</div>
-</div>
-
-<div class="row">
-<div class="label">Prodi / Golongan</div>
-<div>: {{ $booking->prodi ?? 'Teknik Informatika' }} / {{ $booking->golongan }}</div>
-</div>
-
-<div class="row">
-<div class="label">No HP</div>
-<div>: {{ $booking->phone }}</div>
-</div>
-
-
-<!-- ANGGOTA -->
-
-<div class="section">
-Anggota Kelompok / Tim
-</div>
-
-@foreach($booking->membersCollection as $index => $member)
-
-<div class="row">
-<div style="width:30px">{{ $index+1 }}.</div>
-<div>{{ $member->name }} ({{ $member->nim }})</div>
-</div>
-
-@endforeach
-
-
-<!-- LAB -->
-
-<div class="section">
-Mengajukan permohonan peminjaman ruangan laboratorium (Centang salah satu)
-</div>
-
-@php
-$labs=[
-'Multimedia Cerdas (MMC)',
-'Komputasi dan Sistem Informasi (KSI)',
-'Arsitektur dan Jaringan Komputer (AJK)',
-'Mobile',
-'Rekayasa Perangkat Lunak (RPL)'
-];
-@endphp
-
-@foreach($labs as $lab)
-
-<div>
-<span class="checkbox {{ $booking->lab_name==$lab?'checked':'' }}"></span>
-{{ $lab }}
-</div>
-
-@endforeach
-
-
-<!-- KEGIATAN -->
-
-<div class="section">
-Yang akan digunakan dalam kegiatan / acara (Centang salah satu)
-</div>
-
-@php
-$acts=[
-'Tugas Akhir Workshop',
-'Penelitian / Pengabdian',
-'Tugas Kuliah',
-'Kegiatan Komunitas',
-'Lomba',
-'Tugas Akhir / Skripsi'
-];
-@endphp
-
-@foreach($acts as $act)
-
-<div>
-<span class="checkbox {{ stripos($booking->activity,$act)!==false?'checked':'' }}"></span>
-{{ $act }}
-</div>
-
-@endforeach
-
-
-<!-- WAKTU -->
-
-<div class="section">
-
-<div>
-Lama Penggunaan : {{ $booking->duration_days }} Hari
-</div>
-
-<div>
-Selesai Pelaksanaan :
-{{ $booking->end_date->format('d-m-Y') }}
-</div>
-
-<div>
-Tanggal Mulai :
-{{ $booking->start_date->format('d-m-Y') }}
-</div>
-
-<div>
-Waktu :
-{{ $booking->session }} WIB
-</div>
-
-</div>
-
-
-<!-- PERNYATAAN -->
-
-<ol>
-
-<li>
-BERTANGGUNG JAWAB DAN MEMATUHI ATURAN yang ditetapkan pihak kampus.
-</li>
-
-<li>
-BERSEDIA MENJAGA KETERATURAN, KEBERSIHAN, DAN INVENTARIS ruangan.
-</li>
-
-<li>
-BERSEDIA DIKENAKAN SANKSI apabila melanggar aturan.
-</li>
-
-</ol>
-
-
-<div style="margin-top:15px">
-Demikian permohonan peminjaman ruangan ini disampaikan.
-</div>
-
-
-<!-- TTD -->
-
-<div class="ttd">
-
-<table>
-
-<tr>
-
-<td width="50%">
-Dosen Pembimbing
-</td>
-
-<td width="50%">
-Nganjuk, {{ \Carbon\Carbon::parse($approvalDate)->format('d-m-Y') }}<br>
-Peminjam
-</td>
-
-</tr>
-
-<tr>
-
-<td>
-<div class="line"></div>
-NIP :
-</td>
-
-<td>
-<div class="line"></div>
-{{ $booking->user->name }}<br>
-NIM {{ $booking->user->nim }}
-</td>
-
-</tr>
-
-<tr>
-
-<td>
-Mengetahui Ketua Laboratorium
-</td>
-
-<td>
-Teknisi Laboratorium
-</td>
-
-</tr>
-
-<tr>
-
-<td>
-<div class="line"></div>
-Raditya Arief Pratama, S.Kom., M.Eng<br>
-NIP 199310092024061001
-</td>
-
-<td>
-<div class="line"></div>
-NIP :
-</td>
-
-</tr>
-
-</table>
-
-</div>
-
+    <!-- Header - Compact -->
+    <div class="header-box">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="logo-circle"></div>
+                <div class="header-text">
+                    <h3>POLITEKNIK NEGERI JEMBER</h3>
+                    <h3>JURUSAN TEKNOLOGI INFORMASI</h3>
+                    <p>Program Studi Teknik Informatika (Kampus Kali, Nganjuk)</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <table>
+                    <tr>
+                        <td class="label">No. Dokumen</td>
+                        <td>: FORM-LAB-{{ str_pad($booking->id, 5, '0', STR_PAD_LEFT) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Terbitan</td>
+                        <td>: Program Studi Teknik Informatika PSDMU Kab. Nganjuk</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="header-bottom">
+            Program Studi Teknik Informatika PSDMU Kab. Nganjuk
+        </div>
+    </div>
+
+    <!-- Title -->
+    <div class="form-title">FORM PEMINJAMAN RUANG LABORATORIUM</div>
+
+    <!-- Content -->
+    <div class="content">
+        <div class="intro">Saya yang bertandatangan dibawah ini selaku peminjam :</div>
+
+        @if($booking->user->role === 'mahasiswa')
+        <div class="form-row">
+            <div class="form-label">Nama / NIM</div>
+            <div class="form-dots">{{ $booking->user->name }} / {{ $booking->user->nim ?? '' }}</div>
+        </div>
+        @else
+        <div class="form-row">
+            <div class="form-label">Nama Dosen / Tendik</div>
+            <div class="form-dots">{{ $booking->user->name }}</div>
+        </div>
+        <div class="form-row">
+            <div class="form-label">NIP</div>
+            <div class="form-dots">{{ $booking->user->nip ?? '' }}</div>
+        </div>
+        @endif
+
+        <div class="form-row">
+            <div class="form-label">Prodi / Golongan</div>
+            <div class="form-dots">{{ $booking->prodi ?? 'Teknik Informatika' }} / {{ $booking->golongan ?? '' }}</div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-label">No HP</div>
+            <div class="form-dots">{{ $booking->phone ?? '' }}</div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-label">Anggota Kelompok / Tim</div>
+        </div>
+
+        <div class="members-section">
+            @php
+            $memberCount = $booking->membersCollection ? $booking->membersCollection->count() : 0;
+            @endphp
+
+            @if($memberCount > 0)
+                @foreach($booking->membersCollection as $index => $member)
+                <div>
+                    <span class="members-num">{{ $index + 1 }}.</span>
+                    <span class="members-dots">{{ $member->name }} ({{ $member->nim ?? $member->nip ?? '' }})</span>
+                </div>
+                @endforeach
+                @for($i = $memberCount; $i < 5; $i++)
+                <div>
+                    <span class="members-num">{{ $i + 1 }}.</span>
+                    <span class="members-dots"></span>
+                </div>
+                @endfor
+            @else
+                @for($i = 1; $i <= 5; $i++)
+                <div>
+                    <span class="members-num">{{ $i }}.</span>
+                    <span class="members-dots"></span>
+                </div>
+                @endfor
+            @endif
+        </div>
+    </div>
+
+    <!-- Labs -->
+    <div class="checkbox-section">
+        <div class="checkbox-title">Mengajukan permohonan peminjaman ruangan laboratorium *(Centang salah satu) :</div>
+
+        @php
+        $labs = [
+            'Multimedia Cerdas (MMC)',
+            'Komputer dan Sistem Informasi (KSI)',
+            'Arsitektur dan Jaringan Komputer (AJK)',
+            'Mobile',
+            'Rekayasa Perangkat Lunak (RPL)'
+        ];
+        @endphp
+
+        @foreach($labs as $lab)
+        <div class="checkbox-item">
+            <span class="checkbox-box {{ $booking->lab_name == $lab ? 'checked' : '' }}"></span>
+            {{ $lab }}
+        </div>
+        @endforeach
+    </div>
+
+    <!-- Activities -->
+    <div class="checkbox-section">
+        <div class="checkbox-title">Yang akan digunakan dalam kegiatan / acara *(Centang salah satu) :</div>
+
+        @php
+        if($booking->user->role === 'mahasiswa') {
+            $acts = [
+                'Tugas Akhir Workshop',
+                'Penelitian / Pengabdian',
+                'Tugas Kuliah',
+                'Kegiatan Komunitas',
+                'Lomba',
+                'Tugas Akhir / Skripsi'
+            ];
+        } else {
+            $acts = [
+                'Bimbingan - Tugas Akhir Workshop',
+                'Penelitian',
+                'Pengabdian Masyarakat',
+                'Perkuliahah (Workshop) Prodi Lain',
+                'Bimbingan Lainnya'
+            ];
+        }
+        @endphp
+
+        @foreach($acts as $act)
+        <div class="checkbox-item">
+            <span class="checkbox-box {{ stripos($booking->activity ?? '', $act) !== false ? 'checked' : '' }}"></span>
+            {{ $act }}
+        </div>
+        @endforeach
+    </div>
+
+    <!-- Time -->
+    <div class="time-section">
+        <div class="time-row">
+            <div class="time-label">Lama Penggunaan</div>
+            <div class="time-dots">{{ $booking->duration_days }} Hari</div>
+            <div class="time-label-right">Tanggal Mulai Pelaksanaan</div>
+            <div class="time-dots-right">{{ \Carbon\Carbon::parse($booking->start_date)->format('d/m/Y') }}</div>
+        </div>
+        <div class="time-row">
+            <div class="time-label">Selesai Pelaksanaan</div>
+            <div class="time-dots">{{ \Carbon\Carbon::parse($booking->end_date)->format('d/m/Y') }}</div>
+            <div class="time-label-right">Waktu Pelaksanaan</div>
+            <div class="time-dots-right">{{ $booking->start_time }} s/d {{ $booking->end_time }} WIB</div>
+        </div>
+    </div>
+
+    <!-- Statement -->
+    <div class="statement-section">
+        <div class="statement-intro">Selanjutnya akan,</div>
+        <div class="statement-list">
+            <ol>
+                <li>
+                    <strong>BERTANGGUNG JAWAB DAN MEMATUHI ATURAN</strong> yang ditetapkan pihak kampus terkait dengan penggunaan ruangan.
+                </li>
+                <li>
+                    <strong>BERSEDIA MENJAGA KETERTIBAN, KEBERSIHAN, DAN INVENTARIS</strong> ruangan selama melaksanakan kegiatan di dalam ruangan.
+                </li>
+                <li>
+                    <strong>BERSEDIA DIKENAKAN SANKSI</strong> apabila dalam pelaksanaannya dinilai dan terbukti melanggar poin 1 dan poin 2.
+                </li>
+            </ol>
+        </div>
+        <div class="statement-note">
+            Demikian permohonan peminjaman ruangan ini disampaikan. Atas perhatian dan bantuan diucapkan terima kasih.
+        </div>
+    </div>
+
+    <!-- Signatures -->
+    <div class="signatures">
+        @if($booking->user->role === 'mahasiswa')
+        <!-- Mahasiswa -->
+        <div class="sig-row clearfix">
+            <div class="sig-box">
+                <div class="sig-title">Dosen Pembimbing,</div>
+                <div class="sig-line"></div>
+                <div class="sig-name">
+                    @if($booking->approvedByDosen)
+                        {{ $booking->approvedByDosen->name }}
+                    @endif
+                </div>
+                <div class="sig-name">
+                    NIP. {{ $booking->approvedByDosen->nip ?? '........................' }}
+                </div>
+            </div>
+            <div class="sig-box right">
+                <div class="sig-title">Nganjuk, {{ \Carbon\Carbon::parse($approvalDate)->format('d/m/Y') }}<br>Peminjam,</div>
+                <div class="sig-line"></div>
+                <div class="sig-name">{{ $booking->user->name }}</div>
+                <div class="sig-name">NIM. {{ $booking->user->nim ?? '' }}</div>
+            </div>
+        </div>
+
+        <div class="sig-row clearfix">
+            <div class="sig-box">
+                <div class="sig-title">Mengetahui Ketua Laboratorium</div>
+                <div class="kalab-name">Raditya Arief Pratama, S.Kom, M.Eng.</div>
+                <div class="sig-name">NIP. 199310092024061001</div>
+            </div>
+            <div class="sig-box right">
+                <div class="sig-title">Teknisi Laboratorium</div>
+                <div class="sig-line"></div>
+                <div class="sig-name">
+                    @if($booking->approvedByTeknisi)
+                        {{ $booking->approvedByTeknisi->name }}
+                    @endif
+                </div>
+                <div class="sig-name">
+                    NIP. {{ $booking->approvedByTeknisi->nip ?? '........................' }}
+                </div>
+            </div>
+        </div>
+        @else
+        <!-- Dosen -->
+        <div class="sig-row clearfix">
+            <div class="sig-box">
+                <div class="sig-title">Teknisi Laboratorium</div>
+                <div class="sig-line"></div>
+                <div class="sig-name">
+                    @if($booking->approvedByTeknisi)
+                        {{ $booking->approvedByTeknisi->name }}
+                    @endif
+                </div>
+                <div class="sig-name">
+                    NIP. {{ $booking->approvedByTeknisi->nip ?? '........................' }}
+                </div>
+            </div>
+            <div class="sig-box right">
+                <div class="sig-title">Nganjuk, {{ \Carbon\Carbon::parse($approvalDate)->format('d/m/Y') }}<br>Peminjam,</div>
+                <div class="sig-line"></div>
+                <div class="sig-name">{{ $booking->user->name }}</div>
+                <div class="sig-name">NIP. {{ $booking->user->nip ?? '' }}</div>
+            </div>
+        </div>
+
+        <div class="sig-row clearfix" style="text-align: center;">
+            <div style="margin: 0 auto; width: 50%;">
+                <div class="sig-title">Mengetahui Ketua Laboratorium</div>
+                <div class="kalab-name">Raditya Arief Pratama, S.Kom, M.Eng.</div>
+                <div class="sig-name">NIP. 199310092024061001</div>
+            </div>
+        </div>
+        @endif
+    </div>
 </body>
 </html>

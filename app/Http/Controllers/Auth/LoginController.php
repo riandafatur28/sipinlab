@@ -15,6 +15,7 @@ class LoginController extends Controller
      */
     public function showLoginForm()
     {
+        // Jika sudah login, redirect ke dashboard sesuai role
         if (Auth::check()) {
             return redirect()->intended($this->getRedirectPath(Auth::user()));
         }
@@ -68,23 +69,34 @@ class LoginController extends Controller
     }
 
     /**
-     * Logout
+     * Logout - Redirect ke halaman publik (jadwal lab)
      */
-   public function logout(Request $request)
-{
-    // Destroy session
-    Auth::logout();
+    public function logout(Request $request)
+    {
+        $user = Auth::user();
 
-    // Invalidate session
-    $request->session()->invalidate();
+        if ($user) {
+            Log::info('User logged out', [
+                'user_id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ]);
+        }
 
-    // Regenerate CSRF token
-    $request->session()->regenerateToken();
+        // Destroy auth
+        Auth::logout();
 
-    // Redirect to login with message
-    return redirect()->route('login')
-        ->with('success', '✅ Anda telah berhasil logout.');
-}
+        // Invalidate session
+        $request->session()->invalidate();
+
+        // Regenerate CSRF token
+        $request->session()->regenerateToken();
+
+        // ✅ Redirect ke halaman publik (jadwal lab) sebagai landing page
+        return redirect()->route('home')
+            ->with('success', '✅ Anda telah berhasil logout.');
+    }
+
     /**
      * Get redirect path based on user role AND kalab status
      */
@@ -112,8 +124,6 @@ class LoginController extends Controller
 
         return route('dashboard');
     }
-
-
 
     /**
      * Helper: Check if user should see Kalab view
