@@ -169,6 +169,14 @@ class Booking extends Model
         return $this->belongsTo(User::class, 'supervisor_id');
     }
 
+    // ✅ ✅ ✅ RELASI BARU: Lab (Custom karena lab_name adalah string)
+    public function lab()
+    {
+        // Karena lab_name adalah string, kita query manual ke model Lab
+        // Mapping: bookings.lab_name → labs.name
+        return $this->hasOne(Lab::class, 'name', 'lab_name');
+    }
+
     public function getMembersCollectionAttribute()
     {
         if (empty($this->members) || !is_array($this->members)) {
@@ -198,7 +206,7 @@ class Booking extends Model
     public function isConfirmed(): bool { return $this->status === 'confirmed'; }
     public function isRejected(): bool { return $this->status === 'rejected'; }
     public function isCancelled(): bool { return $this->status === 'cancelled'; }
-    
+
     public function isActive(): bool
     {
         return !in_array($this->status, ['rejected', 'cancelled']);
@@ -222,24 +230,24 @@ class Booking extends Model
         return in_array($this->status, ['pending', 'approved_dosen']);
     }
 
-        /**
+    /**
      * ✅ Check if booking can be approved by current authenticated technician
      * Includes lab assignment validation
      */
     public function canApproveByCurrentTeknisi(): bool
     {
         $user = auth()->user();
-        
+
         // Hanya teknisi yang bisa approve
         if ($user->role !== 'teknisi') {
             return false;
         }
-        
+
         // ✅ Teknisi hanya bisa approve booking untuk lab-nya sendiri
         if ($user->lab_name !== $this->lab_name) {
             return false;
         }
-        
+
         // Status harus pending atau approved_dosen
         return in_array($this->status, ['pending', 'approved_dosen']);
     }
@@ -300,7 +308,7 @@ class Booking extends Model
                 default => 'Status Tidak Dikenal',
             };
         }
-        
+
         return match($this->status) {
             'pending' => 'Menunggu Persetujuan Dosen',
             'approved_dosen' => 'Menunggu Persetujuan Teknisi',
@@ -324,7 +332,7 @@ class Booking extends Model
                 default => 0,
             };
         }
-        
+
         return match($this->status) {
             'pending' => 0,
             'approved_dosen' => 33,
@@ -361,7 +369,7 @@ class Booking extends Model
                 default => ucfirst($this->status),
             };
         }
-        
+
         return match($this->status) {
             'pending' => 'Menunggu Persetujuan',
             'approved_dosen' => 'Disetujui Dosen',
@@ -526,7 +534,7 @@ class Booking extends Model
     public function scopeConfirmed(Builder $query): Builder { return $query->where('status', 'confirmed'); }
     public function scopeRejected(Builder $query): Builder { return $query->where('status', 'rejected'); }
     public function scopeCancelled(Builder $query): Builder { return $query->where('status', 'cancelled'); }
-    
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->whereNotIn('status', ['rejected', 'cancelled']);
@@ -679,12 +687,12 @@ class Booking extends Model
             if (!$booking->prodi) {
                 $booking->prodi = 'Teknik Informatika';
             }
-            
+
             // Auto-set golongan from user if not provided
             if (!$booking->golongan && $booking->user?->golongan) {
                 $booking->golongan = $booking->user->golongan;
             }
-            
+
             // Auto-set phone from user if not provided
             if (!$booking->phone && $booking->user?->phone) {
                 $booking->phone = $booking->user->phone;

@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto">
-    
+
     <!-- Header -->
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-800">Edit Jadwal Kuliah</h1>
@@ -19,7 +19,7 @@
             </svg>
             <div>
                 <p class="text-sm font-medium text-blue-800">
-                    ID Jadwal: #{{ $classSchedule->id }} 
+                    ID Jadwal: #{{ $classSchedule->id }}
                     <span class="mx-2">•</span>
                     Dibuat: {{ $classSchedule->created_at->format('d M Y') }}
                 </p>
@@ -30,9 +30,9 @@
     <form action="{{ route('admin.class-schedules.update', $classSchedule) }}" method="POST" class="bg-white rounded-xl shadow-lg p-8">
         @csrf
         @method('PUT')
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             <!-- Mata Kuliah -->
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Nama Mata Kuliah <span class="text-red-500">*</span></label>
@@ -120,18 +120,6 @@
                 <p class="mt-1 text-xs text-gray-500">Hari praktikum: Senin - Jumat</p>
             </div>
 
-            <!-- Sesi -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Sesi <span class="text-red-500">*</span></label>
-                <select name="session" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('session') border-red-500 @enderror">
-                    <option value="">-- Pilih Sesi --</option>
-                    @foreach($sessions as $session)
-                        <option value="{{ $session }}" {{ old('session', $classSchedule->session) == $session ? 'selected' : '' }}>{{ $session }}</option>
-                    @endforeach
-                </select>
-                @error('session') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-            </div>
-
             <!-- Jam Mulai -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Jam Mulai <span class="text-red-500">*</span></label>
@@ -154,6 +142,7 @@
                 <input type="number" name="students_count" required min="1" max="200" value="{{ old('students_count', $classSchedule->students_count) }}"
                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('students_count') border-red-500 @enderror">
                 @error('students_count') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                <p class="mt-1 text-xs text-gray-500">Harus sama dengan jadwal lain untuk Semester+Golongan yang sama</p>
             </div>
 
             <!-- Status -->
@@ -192,7 +181,7 @@
         <form action="{{ route('admin.class-schedules.destroy', $classSchedule) }}" method="POST" class="inline">
             @csrf
             @method('DELETE')
-            <button type="submit" onclick="return confirm('⚠️ Yakin ingin menghapus jadwal ini?\n\n{{ $classSchedule->course_name }} - Golongan {{ $classSchedule->golongan }}\n{{ $classSchedule->day }}, {{ $classSchedule->start_time }} - {{ $classSchedule->end_time }}')" 
+            <button type="submit" onclick="return confirm('⚠️ Yakin ingin menghapus jadwal ini?\n\n{{ $classSchedule->course_name }} - Golongan {{ $classSchedule->golongan }}\n{{ $classSchedule->day }}, {{ $classSchedule->start_time }} - {{ $classSchedule->end_time }}')"
                     class="text-red-600 hover:text-red-800 font-medium text-sm flex items-center gap-1 ml-auto">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>

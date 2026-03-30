@@ -8,6 +8,8 @@ use App\Models\Lab;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ClassScheduleController extends Controller
 {
@@ -17,7 +19,8 @@ class ClassScheduleController extends Controller
     public function index(Request $request)
     {
         $query = ClassSchedule::with('lecturer');
-        
+
+        // Filter queries
         if ($request->filled('lab')) {
             $query->where('lab_name', $request->lab);
         }
@@ -36,17 +39,52 @@ class ClassScheduleController extends Controller
                   ->orWhere('course_code', 'like', "%{$request->search}%");
             });
         }
-        
-        $schedules = $query->orderBy('day')
-                          ->orderBy('start_time')
-                          ->paginate(20);
-        
+
+        // ✅ FIX: Urutan Tabel & Pagination 10 baris
+        $schedules = $query->orderByRaw("FIELD(day, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat')")
+                          ->orderBy('start_time', 'asc')
+                          ->paginate(10)
+                          ->withQueryString();
+
         $labs = Lab::where('status', 'active')->pluck('name', 'name');
         $lecturers = User::where('role', 'dosen')->pluck('name', 'id');
         $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
         $golongans = ['A', 'B', 'C'];
-        
-        return view('admin.class-schedules.index', compact('schedules', 'labs', 'lecturers', 'days', 'golongans'));
+
+        // ✅ FIX: Hitung Total Mahasiswa Unik (Anti Duplikasi)
+        $uniqueStudentStats = ClassSchedule::select('semester', 'golongan', 'students_count')
+            ->where('status', 'active')
+            ->when($request->filled('lab'), fn($q) => $q->where('lab_name', $request->lab))
+            ->distinct()
+            ->get()
+            ->groupBy(function($item) {
+                return "{$item->semester}-{$item->golongan}";
+            })
+            ->map(fn($group) => $group->first()->students_count)
+            ->sum();
+
+        // ✅ FIX: Hitung jadwal hari ini - gunakan FIELD() untuk match nama hari
+        $todayName = Carbon::now()->locale('id')->dayName; // 'Senin', 'Selasa', dst
+        $hariIniCount = ClassSchedule::whereRaw("FIELD(day, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat') = FIELD(?, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat')", [$todayName])
+            ->where('status', 'active')
+            ->count();
+
+        $stats = [
+            'total_jadwal' => $schedules->total(),
+            'total_mahasiswa_unik' => $uniqueStudentStats,
+            'total_golongan_aktif' => ClassSchedule::where('status', 'active')
+                ->distinct('golongan')
+                ->count('golongan'),
+            'lab_terpakai' => $schedules->pluck('lab_name')->unique()->count(),
+            'hari_ini' => $hariIniCount, // ✅ Sekarang akan menampilkan angka yang benar
+        ];
+
+        // ✅ Return partial view if AJAX request (for live search & filters)
+        if ($request->ajax()) {
+            return view('admin.class-schedules.partials.table', compact('schedules'))->render();
+        }
+
+        return view('admin.class-schedules.index', compact('schedules', 'labs', 'lecturers', 'days', 'golongans', 'stats'));
     }
 
     /**
@@ -58,19 +96,13 @@ class ClassScheduleController extends Controller
         $lecturers = User::where('role', 'dosen')->pluck('name', 'id');
         $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
         $golongans = ['A', 'B', 'C'];
-        
-        // ✅ Session options untuk referensi (tidak dipakai untuk input)
+
         $sessions = [
-            'Sesi 1 (07:00 - 08:00)',
-            'Sesi 2 (08:00 - 09:00)',
-            'Sesi 3 (09:00 - 10:00)',
-            'Sesi 4 (10:00 - 11:00)',
-            'Sesi 5 (13:00 - 14:00)',
-            'Sesi 6 (14:00 - 15:00)',
-            'Sesi 7 (15:00 - 16:00)',
-            'Sesi 8 (16:00 - 17:00)',
+            'Sesi 1 (07:00 - 08:00)', 'Sesi 2 (08:00 - 09:00)', 'Sesi 3 (09:00 - 10:00)',
+            'Sesi 4 (10:00 - 11:00)', 'Sesi 5 (13:00 - 14:00)', 'Sesi 6 (14:00 - 15:00)',
+            'Sesi 7 (15:00 - 16:00)', 'Sesi 8 (16:00 - 17:00)',
         ];
-        
+
         return view('admin.class-schedules.create', compact('labs', 'lecturers', 'days', 'golongans', 'sessions'));
     }
 
@@ -99,18 +131,15 @@ class ClassScheduleController extends Controller
             'end_time.after' => 'Jam selesai harus setelah jam mulai',
         ]);
 
-        // ✅ Check for schedule conflict (time range overlap)
+        // ✅ VALIDASI 1: Cek Konflik Jadwal (Time Overlap)
         $conflict = ClassSchedule::where('lab_name', $validated['lab_name'])
             ->where('day', $validated['day'])
             ->where('golongan', $validated['golongan'])
             ->where('status', 'active')
             ->where(function($q) use ($validated) {
-                // Check for time range overlap
                 $q->where(function($sub) use ($validated) {
-                    // Case 1: Existing schedule starts within new range
                     $sub->whereBetween('start_time', [$validated['start_time'], $validated['end_time']])
                         ->orWhereBetween('end_time', [$validated['start_time'], $validated['end_time']])
-                        // Case 2: Existing schedule completely covers new range
                         ->orWhere(function($sub2) use ($validated) {
                             $sub2->where('start_time', '<=', $validated['start_time'])
                                  ->where('end_time', '>=', $validated['end_time']);
@@ -122,6 +151,18 @@ class ClassScheduleController extends Controller
         if ($conflict) {
             return back()->withErrors([
                 'end_time' => '⚠️ Jadwal bentrok! Sudah ada jadwal pada rentang waktu yang sama.'
+            ])->withInput();
+        }
+
+        // ✅ VALIDASI 2: Cek Konsistensi students_count
+        $existingGroup = ClassSchedule::where('semester', $validated['semester'])
+            ->where('golongan', $validated['golongan'])
+            ->where('status', 'active')
+            ->first();
+
+        if ($existingGroup && $existingGroup->students_count !== $validated['students_count']) {
+            return back()->withErrors([
+                'students_count' => "⚠️ Data tidak konsisten! Golongan {$validated['golongan']} Semester {$validated['semester']} sudah terdaftar dengan {$existingGroup->students_count} mahasiswa. Harap gunakan angka yang sama."
             ])->withInput();
         }
 
@@ -148,18 +189,13 @@ class ClassScheduleController extends Controller
         $lecturers = User::where('role', 'dosen')->pluck('name', 'id');
         $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
         $golongans = ['A', 'B', 'C'];
-        
+
         $sessions = [
-            'Sesi 1 (07:00 - 08:00)',
-            'Sesi 2 (08:00 - 09:00)',
-            'Sesi 3 (09:00 - 10:00)',
-            'Sesi 4 (10:00 - 11:00)',
-            'Sesi 5 (13:00 - 14:00)',
-            'Sesi 6 (14:00 - 15:00)',
-            'Sesi 7 (15:00 - 16:00)',
-            'Sesi 8 (16:00 - 17:00)',
+            'Sesi 1 (07:00 - 08:00)', 'Sesi 2 (08:00 - 09:00)', 'Sesi 3 (09:00 - 10:00)',
+            'Sesi 4 (10:00 - 11:00)', 'Sesi 5 (13:00 - 14:00)', 'Sesi 6 (14:00 - 15:00)',
+            'Sesi 7 (15:00 - 16:00)', 'Sesi 8 (16:00 - 17:00)',
         ];
-        
+
         return view('admin.class-schedules.edit', compact('classSchedule', 'labs', 'lecturers', 'days', 'golongans', 'sessions'));
     }
 
@@ -188,7 +224,7 @@ class ClassScheduleController extends Controller
             'end_time.after' => 'Jam selesai harus setelah jam mulai',
         ]);
 
-        // ✅ Check for schedule conflict (exclude current record)
+        // ✅ VALIDASI 1: Cek Konflik Jadwal (Exclude current record)
         $conflict = ClassSchedule::where('lab_name', $validated['lab_name'])
             ->where('day', $validated['day'])
             ->where('golongan', $validated['golongan'])
@@ -209,6 +245,19 @@ class ClassScheduleController extends Controller
         if ($conflict) {
             return back()->withErrors([
                 'end_time' => '⚠️ Jadwal bentrok! Sudah ada jadwal pada rentang waktu yang sama.'
+            ])->withInput();
+        }
+
+        // ✅ VALIDASI 2: Cek Konsistensi students_count
+        $existingGroup = ClassSchedule::where('semester', $validated['semester'])
+            ->where('golongan', $validated['golongan'])
+            ->where('status', 'active')
+            ->where('id', '!=', $classSchedule->id)
+            ->first();
+
+        if ($existingGroup && $existingGroup->students_count !== $validated['students_count']) {
+            return back()->withErrors([
+                'students_count' => "⚠️ Data tidak konsisten! Golongan {$validated['golongan']} Semester {$validated['semester']} sudah terdaftar dengan {$existingGroup->students_count} mahasiswa."
             ])->withInput();
         }
 

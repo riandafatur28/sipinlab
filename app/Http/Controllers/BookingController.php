@@ -42,6 +42,32 @@ class BookingController extends Controller
         }
 
         // ====================================================================
+        // 🆕 FILTER BARU: Jika ada parameter user_id, tampilkan booking user tersebut
+        // ====================================================================
+        if ($request->filled('user_id')) {
+            $filteredUser = User::find($request->user_id);
+
+            if ($filteredUser) {
+                $bookings = Booking::where('user_id', $filteredUser->id)
+                    ->with(['user', 'lab'])
+                    ->orderBy('booking_date', 'desc')
+                    ->orderBy('start_time', 'asc')
+                    ->paginate(10)
+                    ->withQueryString();
+
+                $stats = [
+                    'total' => $bookings->total(),
+                    'pending' => Booking::where('user_id', $filteredUser->id)->where('status', 'pending')->count(),
+                    'confirmed' => Booking::where('user_id', $filteredUser->id)->where('status', 'confirmed')->count(),
+                    'rejected' => Booking::where('user_id', $filteredUser->id)->where('status', 'rejected')->count(),
+                ];
+
+                // ✅ Pass filtered user to view for header info
+                return view('booking.index', compact('bookings', 'stats', 'labs', 'filteredUser'));
+            }
+        }
+
+        // ====================================================================
         // 🎓 MAHASISWA: Hanya lihat booking sendiri
         // ====================================================================
         if ($user->isMahasiswa()) {
@@ -60,56 +86,75 @@ class BookingController extends Controller
         }
 
         // ====================================================================
-        // 👨‍🏫 DOSEN (termasuk yang juga Kalab):
-        // - Lihat booking sendiri + approval section untuk booking mahasiswa
+        // 👨‍🏫 DOSEN (termasuk yang juga Kalab)
         // ====================================================================
         if ($user->isDosen()) {
-            // Booking yang dibuat user ini
-            $myBookingsQuery = Booking::where('user_id', $user->id);
+            // Booking yang dibuat user ini (dosen)
+            $ownBookings = Booking::where('user_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
 
             // Booking mahasiswa yang menunggu persetujuan dosen
-            $pendingApprovalsQuery = Booking::where('status', 'pending')
+            $pendingApprovals = Booking::where('status', 'pending')
                 ->whereHas('user', function($q) {
                     $q->where('role', 'mahasiswa');
-                });
+                })
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
 
-            // Tab navigation support via URL parameter
+            // ✅ BOOKING MAHASISWA DENGAN DOSEN SEBAGAI PEMBIMBING
+            $supervisedBookings = Booking::where('supervisor_id', $user->id)
+                ->with(['user', 'lab'])
+                ->orderBy('booking_date', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
+
+            $supervisedStats = [
+                'total' => $supervisedBookings->total(),
+                'pending' => Booking::where('supervisor_id', $user->id)->where('status', 'pending')->count(),
+                'confirmed' => Booking::where('supervisor_id', $user->id)->where('status', 'confirmed')->count(),
+                'rejected' => Booking::where('supervisor_id', $user->id)->where('status', 'rejected')->count(),
+            ];
+
             $tab = $request->get('tab', 'mybookings');
 
             if ($tab === 'approvals') {
-                $bookings = $pendingApprovalsQuery->orderBy('created_at', 'desc')->paginate(10);
+                $bookings = $pendingApprovals;
                 $stats = [
-                    'total' => $pendingApprovalsQuery->count(),
-                    'pending' => $pendingApprovalsQuery->count(),
-                    'confirmed' => 0,
-                    'rejected' => 0,
+                    'total' => $pendingApprovals->total(),
+                    'pending' => $pendingApprovals->total(),
+                    'approved' => 0,
+                    'awaiting_approval' => $pendingApprovals->total(),
                 ];
             } elseif ($tab === 'management' && $user->isKalab()) {
-                // Jika Dosen juga Kalab dan pilih tab management
                 return $this->indexKalabManagement($request, $labs);
             } else {
-                // Default: tampilkan booking saya
-                $bookings = $myBookingsQuery->orderBy('created_at', 'desc')->paginate(10);
+                $bookings = $ownBookings;
                 $stats = [
-                    'total' => $myBookingsQuery->count(),
-                    'pending' => (clone $myBookingsQuery)->where('status', 'pending')->count(),
-                    'confirmed' => (clone $myBookingsQuery)->where('status', 'confirmed')->count(),
-                    'rejected' => (clone $myBookingsQuery)->where('status', 'rejected')->count(),
+                    'total' => $ownBookings->total(),
+                    'pending' => Booking::where('user_id', $user->id)->where('status', 'pending')->count(),
+                    'approved' => Booking::where('user_id', $user->id)->where('status', 'confirmed')->count(),
+                    'awaiting_approval' => $pendingApprovals->total(),
                 ];
             }
 
-            return view('booking.index', compact('bookings', 'stats', 'labs', 'tab'));
+            // ✅ Return view dengan SEMUA variabel yang diperlukan
+            return view('booking.index', compact(
+                'bookings', 'stats', 'labs', 'tab',
+                'ownBookings', 'pendingApprovals',
+                'supervisedBookings', 'supervisedStats'
+            ));
         }
 
         // ====================================================================
-        // 👔 KALAB (yang bukan dosen): Dashboard management penuh
+        // 👔 KALAB (yang bukan dosen)
         // ====================================================================
         if ($user->isKalab()) {
             return $this->indexKalabManagement($request, $labs);
         }
 
         // ====================================================================
-        // 🔧 TEKNISI / 👨‍💼 ADMIN: Management booking dengan filter
+        // 🔧 TEKNISI / 👨‍💼 ADMIN
         // ====================================================================
         return $this->indexStaffManagement($request, $user, $labs);
     }
@@ -226,6 +271,47 @@ class BookingController extends Controller
     }
 
     // ========================================================================
+    // 👁️ SHOW: Detail Booking (✅ FIX: Authorization yang benar)
+    // ========================================================================
+    public function show(Booking $booking)
+    {
+        $user = Auth::user();
+
+        // ✅ Authorization yang lebih fleksibel dan aman
+        $canView = false;
+
+        // 1. Owner booking bisa lihat
+        if ($booking->user_id === $user->id) {
+            $canView = true;
+        }
+        // 2. Admin bisa lihat semua
+        elseif ($user->isAdmin()) {
+            $canView = true;
+        }
+        // 3. Kalab/Ketua Lab bisa lihat semua
+        elseif ($user->isKalab() || $user->role === 'ketua_lab') {
+            $canView = true;
+        }
+        // 4. Teknisi bisa lihat booking di lab-nya
+        elseif ($user->isTeknisi() && !empty($user->lab_name)) {
+            if ($booking->lab_name === $user->lab_name) {
+                $canView = true;
+            }
+        }
+        // 5. Dosen bisa lihat booking mahasiswa yang dia bimbing
+        elseif ($user->isDosen() && $booking->supervisor_id === $user->id) {
+            $canView = true;
+        }
+
+        // Jika tidak memenuhi kriteria di atas, tolak akses
+        if (!$canView) {
+            abort(403, 'Anda tidak memiliki akses untuk melihat detail booking ini.');
+        }
+
+        return view('booking.show', compact('booking'));
+    }
+
+    // ========================================================================
     // 🗑️ DESTROY: Hapus booking (Admin/Kalab/Teknisi only)
     // ========================================================================
     public function destroy(Request $request, Booking $booking)
@@ -284,7 +370,7 @@ class BookingController extends Controller
     {
         $user = Auth::user();
 
-        if ($booking->user_id !== $user->id && !$user->canViewAllBookings()) {
+        if ($booking->user_id !== $user->id && !$this->canViewBooking($user, $booking)) {
             abort(403, 'Anda tidak berwenang mencetak formulir ini');
         }
 
@@ -296,7 +382,7 @@ class BookingController extends Controller
     {
         $user = Auth::user();
 
-        if ($booking->user_id !== $user->id && !$user->canViewAllBookings()) {
+        if ($booking->user_id !== $user->id && !$this->canViewBooking($user, $booking)) {
             abort(403, 'Anda tidak berwenang mengunduh formulir ini');
         }
 
@@ -704,22 +790,7 @@ class BookingController extends Controller
     }
 
     // ========================================================================
-    // 👁️ SHOW: Detail Booking
-    // ========================================================================
-    public function show(Booking $booking)
-    {
-        $user = Auth::user();
-
-        // Authorization: owner atau staff
-        if ($booking->user_id !== $user->id && !$user->canViewAllBookings()) {
-            abort(403, 'Unauthorized');
-        }
-
-        return view('booking.show', compact('booking'));
-    }
-
-    // ========================================================================
-    // 🔧 HELPER METHODS (PRIVATE) - ✅ UPDATED
+    // 🔧 HELPER METHODS (PRIVATE)
     // ========================================================================
 
     private function getAvailableLabs(): array
@@ -859,7 +930,7 @@ class BookingController extends Controller
     }
 
     // ========================================================================
-    // ✅ ✅ ✅ METHOD: checkTimeSlotConflict (SUDAH DIPERBAIKI)
+    // ✅ METHOD: checkTimeSlotConflict (SUDAH DIPERBAIKI)
     // ========================================================================
     private function checkTimeSlotConflict(string $labName, string $bookingDate, string $startTime, string $endTime, ?int $excludeBookingId = null): array
     {
@@ -943,6 +1014,34 @@ class BookingController extends Controller
         }
 
         return ['available' => true, 'conflict_type' => null, 'conflict_info' => null];
+    }
+
+    // ========================================================================
+    // 🔐 HELPER: Check if user can view booking
+    // ========================================================================
+    private function canViewBooking(User $user, Booking $booking): bool
+    {
+        // Owner booking bisa lihat
+        if ($booking->user_id === $user->id) {
+            return true;
+        }
+        // Admin bisa lihat semua
+        if ($user->isAdmin()) {
+            return true;
+        }
+        // Kalab/Ketua Lab bisa lihat semua
+        if ($user->isKalab() || $user->role === 'ketua_lab') {
+            return true;
+        }
+        // Teknisi bisa lihat booking di lab-nya
+        if ($user->isTeknisi() && !empty($user->lab_name)) {
+            return $booking->lab_name === $user->lab_name;
+        }
+        // Dosen bisa lihat booking mahasiswa yang dia bimbing
+        if ($user->isDosen() && $booking->supervisor_id === $user->id) {
+            return true;
+        }
+        return false;
     }
 
     // ========================================================================

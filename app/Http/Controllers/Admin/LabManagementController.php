@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Lab;
 use App\Models\Booking;
+use App\Models\ClassSchedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -42,8 +43,13 @@ class LabManagementController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Get labs with pagination
-        $labs = $query->orderBy('name')->paginate(15)->withQueryString();
+        // Get labs with pagination (10 per page)
+        $labs = $query->orderBy('name')->paginate(10)->withQueryString();
+
+        // ✅ Return partial view if AJAX request (for live search)
+        if ($request->ajax()) {
+            return view('admin.labs.partials.table', compact('labs'))->render();
+        }
 
         return view('admin.labs.index', compact('labs'));
     }
@@ -53,11 +59,9 @@ class LabManagementController extends Controller
      */
     public function create()
     {
-        // ✅ Hanya Admin yang bisa create lab baru
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Hanya Admin yang dapat menambahkan laboratorium baru.');
         }
-
         return view('admin.labs.create');
     }
 
@@ -66,7 +70,6 @@ class LabManagementController extends Controller
      */
     public function store(Request $request)
     {
-        // ✅ Hanya Admin yang bisa create lab baru
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Hanya Admin yang dapat menambahkan laboratorium baru.');
         }
@@ -83,9 +86,7 @@ class LabManagementController extends Controller
             'capacity.max' => 'Kapasitas maksimal 500 orang.',
         ]);
 
-        // Auto-uppercase code
         $validated['code'] = strtoupper($validated['code']);
-
         Lab::create($validated);
 
         Log::info('Lab created', [
@@ -106,23 +107,34 @@ class LabManagementController extends Controller
     {
         $user = Auth::user();
 
-        // ✅ Authorization: Kalab hanya bisa lihat lab sendiri
         if ($user->role === 'kalab' && !empty($user->lab_name) && $lab->name !== $user->lab_name) {
             abort(403, 'Anda tidak memiliki akses ke laboratorium ini.');
         }
 
-        // Load related data for detail view
-        $lab->loadCount(['bookings' => fn($q) => $q->where('status', 'confirmed')]);
-        $lab->loadCount(['classSchedules' => fn($q) => $q->where('status', 'active')]);
+        // ✅ Hitung stats yang benar
+        $stats = [
+            'total_bookings' => Booking::where('lab_name', $lab->name)->count(),
+            'confirmed_bookings' => Booking::where('lab_name', $lab->name)
+                ->where('status', 'confirmed')
+                ->count(),
+            'pending_bookings' => Booking::where('lab_name', $lab->name)
+                ->whereIn('status', ['pending', 'approved_dosen', 'approved_teknisi'])
+                ->count(),
+            'active_schedules' => ClassSchedule::where('lab_name', $lab->name)
+                ->where('status', 'active')
+                ->count(),
+            'today_bookings' => Booking::where('lab_name', $lab->name)
+                ->whereDate('booking_date', today())
+                ->count(),
+        ];
 
-        // Recent bookings for this lab
         $recentBookings = Booking::where('lab_name', $lab->name)
             ->with('user')
             ->orderBy('booking_date', 'desc')
             ->take(5)
             ->get();
 
-        return view('admin.labs.show', compact('lab', 'recentBookings'));
+        return view('admin.labs.show', compact('lab', 'recentBookings', 'stats'));
     }
 
     /**
@@ -132,7 +144,6 @@ class LabManagementController extends Controller
     {
         $user = Auth::user();
 
-        // ✅ Authorization: Kalab hanya bisa edit lab sendiri
         if ($user->role === 'kalab' && !empty($user->lab_name) && $lab->name !== $user->lab_name) {
             abort(403, 'Anda tidak memiliki akses untuk mengedit laboratorium ini.');
         }
@@ -147,12 +158,10 @@ class LabManagementController extends Controller
     {
         $user = Auth::user();
 
-        // ✅ Authorization: Kalab hanya bisa update lab sendiri
         if ($user->role === 'kalab' && !empty($user->lab_name) && $lab->name !== $user->lab_name) {
             abort(403, 'Anda tidak memiliki akses untuk mengupdate laboratorium ini.');
         }
 
-        // ✅ Kalab tidak bisa ubah nama/kode lab (hanya Admin)
         if ($user->role === 'kalab') {
             $validated = $request->validate([
                 'description' => ['nullable', 'string', 'max:1000'],
@@ -161,7 +170,6 @@ class LabManagementController extends Controller
                 'status' => ['required', 'in:active,inactive'],
             ]);
         } else {
-            // Admin bisa update semua field
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255', 'unique:labs,name,' . $lab->id],
                 'code' => ['required', 'string', 'max:10', 'unique:labs,code,' . $lab->id, 'regex:/^[A-Z0-9]+$/'],
@@ -193,18 +201,15 @@ class LabManagementController extends Controller
      */
     public function destroy(Lab $lab)
     {
-        // ✅ Hanya Admin yang bisa hapus lab
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Hanya Admin yang dapat menghapus laboratorium.');
         }
 
-        // Check if lab has confirmed bookings (cannot delete if has active bookings)
         $confirmedBookings = $lab->bookings()->where('status', 'confirmed')->count();
         if ($confirmedBookings > 0) {
             return back()->with('error', "❌ Laboratorium tidak dapat dihapus karena masih ada {$confirmedBookings} booking yang dikonfirmasi!");
         }
 
-        // Check if lab has class schedules
         $classSchedules = $lab->classSchedules()->where('status', 'active')->count();
         if ($classSchedules > 0) {
             return back()->with('error', "❌ Laboratorium tidak dapat dihapus karena masih ada {$classSchedules} jadwal kuliah aktif!");
@@ -223,49 +228,50 @@ class LabManagementController extends Controller
     }
 
     /**
-     * ✅ AJAX: Get available labs for dropdown (Admin/Kalab)
+     * ✅ AJAX: Get available labs for dropdown
      */
     public function getAvailableLabs(Request $request)
     {
         $user = Auth::user();
         $query = Lab::where('status', 'active');
 
-        // Scope for Kalab
         if ($user->role === 'kalab' && !empty($user->lab_name)) {
             $query->where('name', $user->lab_name);
         }
 
-        // Search
         if ($request->filled('search')) {
             $query->where('name', 'like', "%{$request->search}%")
                   ->orWhere('code', 'like', "%{$request->search}%");
         }
 
         $labs = $query->orderBy('name')->get(['id', 'name', 'code', 'location', 'capacity']);
-
         return response()->json($labs);
     }
 
     /**
-     * ✅ AJAX: Get lab stats for dashboard widgets
+     * ✅ AJAX: Get lab stats for modal/detail (FIXED)
      */
     public function getLabStats(Lab $lab)
     {
         $user = Auth::user();
 
-        // Authorization
         if ($user->role === 'kalab' && !empty($user->lab_name) && $lab->name !== $user->lab_name) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
         $stats = [
-            'total_bookings' => $lab->bookings()->count(),
-            'confirmed_bookings' => $lab->bookings()->where('status', 'confirmed')->count(),
-            'pending_bookings' => $lab->bookings()->whereIn('status', ['pending', 'approved_dosen', 'approved_teknisi'])->count(),
-            'active_schedules' => $lab->classSchedules()->where('status', 'active')->count(),
-            'today_bookings' => $lab->bookings()->whereDate('booking_date', today())->count(),
-            'this_week_bookings' => $lab->bookings()
-                ->whereBetween('booking_date', [now()->startOfWeek(), now()->endOfWeek()])
+            'total_bookings' => Booking::where('lab_name', $lab->name)->count(),
+            'confirmed_bookings' => Booking::where('lab_name', $lab->name)
+                ->where('status', 'confirmed')
+                ->count(),
+            'pending_bookings' => Booking::where('lab_name', $lab->name)
+                ->whereIn('status', ['pending', 'approved_dosen', 'approved_teknisi'])
+                ->count(),
+            'active_schedules' => ClassSchedule::where('lab_name', $lab->name)
+                ->where('status', 'active')
+                ->count(),
+            'today_bookings' => Booking::where('lab_name', $lab->name)
+                ->whereDate('booking_date', today())
                 ->count(),
         ];
 

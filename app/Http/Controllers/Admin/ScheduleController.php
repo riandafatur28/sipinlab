@@ -25,18 +25,16 @@ class ScheduleController extends Controller
         $query = Booking::with(['user', 'supervisor']);
 
         // ✅ Scope data untuk Kalab & Teknisi: hanya booking lab yang ditugaskan
-        if (($user->isKalab() || $user->isTeknisi()) && !empty($user->lab_name)) {
+        if (($user->role === 'kalab' || $user->role === 'teknisi') && !empty($user->lab_name)) {
             $query->where('lab_name', $user->lab_name);
         }
 
-        // Filter by lab (Admin/Kalab/Teknisi tanpa lab_name bisa filter manual)
+        // Filter by lab
         if ($request->filled('lab')) {
-            // Kalab/Teknisi dengan lab_name hanya bisa filter lab sendiri
-            if (($user->isKalab() || $user->isTeknisi()) && !empty($user->lab_name)) {
+            if (($user->role === 'kalab' || $user->role === 'teknisi') && !empty($user->lab_name)) {
                 if ($request->lab === $user->lab_name) {
                     $query->where('lab_name', $request->lab);
                 }
-                // Jika filter lab != lab sendiri, silently ignore (tetap pakai scope)
             } else {
                 $query->where('lab_name', $request->lab);
             }
@@ -65,20 +63,17 @@ class ScheduleController extends Controller
             });
         }
 
-        // Get bookings with pagination
+        // ✅ Pagination: 10 data per page
         $bookings = $query->orderBy('booking_date', 'desc')
                          ->orderBy('start_time', 'asc')
-                         ->paginate(20)
+                         ->paginate(10)
                          ->withQueryString();
 
         // Get labs for filter dropdown
         $labsQuery = Lab::where('status', 'active')->orderBy('name');
-
-        // Scope labs for Kalab/Teknisi
-        if (($user->isKalab() || $user->isTeknisi()) && !empty($user->lab_name)) {
+        if (($user->role === 'kalab' || $user->role === 'teknisi') && !empty($user->lab_name)) {
             $labsQuery->where('name', $user->lab_name);
         }
-
         $labs = $labsQuery->pluck('name', 'name');
 
         // Stats for dashboard cards
@@ -88,6 +83,11 @@ class ScheduleController extends Controller
             'pending' => (clone $query)->whereIn('status', ['pending', 'approved_dosen', 'approved_teknisi'])->count(),
             'hari_ini' => (clone $query)->whereDate('booking_date', today())->count(),
         ];
+
+        // ✅ Return partial view if AJAX request (for live search & filters)
+        if ($request->ajax()) {
+            return view('admin.schedule.partials.table', compact('bookings'))->render();
+        }
 
         return view('admin.schedule.index', compact('bookings', 'labs', 'stats'));
     }
@@ -99,16 +99,13 @@ class ScheduleController extends Controller
     {
         $user = Auth::user();
 
-        // ✅ Authorization: Kalab/Teknisi hanya bisa lihat booking lab sendiri
-        if (($user->isKalab() || $user->isTeknisi()) && !empty($user->lab_name)) {
+        if (($user->role === 'kalab' || $user->role === 'teknisi') && !empty($user->lab_name)) {
             if ($booking->lab_name !== $user->lab_name) {
                 abort(403, 'Anda tidak memiliki akses ke booking laboratorium ini.');
             }
         }
 
         $booking->load(['user', 'supervisor']);
-
-        // Load related data for detail view
         $lab = Lab::where('name', $booking->lab_name)->first();
 
         return view('admin.schedule.show', compact('booking', 'lab'));
@@ -121,19 +118,15 @@ class ScheduleController extends Controller
     {
         $user = Auth::user();
 
-        // ✅ Authorization: Kalab/Teknisi hanya bisa update booking lab sendiri
-        if (($user->isKalab() || $user->isTeknisi()) && !empty($user->lab_name)) {
+        if (($user->role === 'kalab' || $user->role === 'teknisi') && !empty($user->lab_name)) {
             if ($booking->lab_name !== $user->lab_name) {
                 abort(403, 'Anda tidak memiliki akses untuk mengupdate booking ini.');
             }
         }
 
-        // ✅ Validasi status yang diizinkan berdasarkan role
-        if ($user->isTeknisi()) {
-            // Teknisi: tidak bisa set ke approved_kalab atau confirmed langsung
+        if ($user->role === 'teknisi') {
             $allowedStatuses = ['pending', 'approved_dosen', 'approved_teknisi', 'rejected', 'cancelled'];
         } else {
-            // Admin/Kalab: semua status diizinkan
             $allowedStatuses = [
                 'pending', 'approved_dosen', 'approved_teknisi',
                 'approved_kalab', 'confirmed', 'rejected', 'cancelled'
@@ -146,16 +139,14 @@ class ScheduleController extends Controller
         ]);
 
         $oldStatus = $booking->status;
-
-        // Build notes with annotation
         $newNotes = $booking->notes;
+
         if (!empty($validated['admin_note'])) {
             $timestamp = now()->format('Y-m-d H:i');
-            $role = $user->role === 'admin' ? 'Admin' : ($user->isKalab() ? 'Kalab' : 'Teknisi');
+            $role = $user->role === 'admin' ? 'Admin' : ($user->role === 'kalab' ? 'Kalab' : ($user->role === 'teknisi' ? 'Teknisi' : 'Unknown'));
             $newNotes .= ($newNotes ? "\n" : "") . "[{$role} {$timestamp}: {$validated['admin_note']}]";
         }
 
-        // ✅ Auto-set approval timestamps based on status change
         $updateData = [
             'status' => $validated['status'],
             'notes' => $newNotes,
@@ -181,13 +172,12 @@ class ScheduleController extends Controller
             $updateData['rejected_by'] = $user->id;
             $updateData['rejected_at'] = now();
             if ($validated['status'] === 'rejected' && empty($booking->rejection_reason)) {
-                $updateData['rejection_reason'] = $validated['admin_note'] ?? 'Ditolak oleh ' . ($user->isKalab() ? 'Kalab' : ($user->isTeknisi() ? 'Teknisi' : 'Admin'));
+                $updateData['rejection_reason'] = $validated['admin_note'] ?? 'Ditolak oleh ' . ($user->role === 'kalab' ? 'Kalab' : ($user->role === 'teknisi' ? 'Teknisi' : 'Admin'));
             }
         }
 
         $booking->update($updateData);
 
-        // Log status change
         Log::info('Booking status updated', [
             'booking_id' => $booking->id,
             'old_status' => $oldStatus,
@@ -208,19 +198,16 @@ class ScheduleController extends Controller
     {
         $user = Auth::user();
 
-        // ✅ Authorization: Kalab hanya bisa cancel booking lab sendiri
-        if ($user->isKalab() && !empty($user->lab_name)) {
+        if ($user->role === 'kalab' && !empty($user->lab_name)) {
             if ($booking->lab_name !== $user->lab_name) {
                 abort(403, 'Anda tidak memiliki akses untuk membatalkan booking ini.');
             }
         }
 
-        // ✅ Teknisi tidak boleh cancel booking (hanya Admin/Kalab)
-        if ($user->isTeknisi()) {
+        if ($user->role === 'teknisi') {
             abort(403, 'Hanya Admin atau Ka Lab yang dapat membatalkan booking.');
         }
 
-        // Prevent cancelling already cancelled/rejected bookings
         if (in_array($booking->status, ['cancelled', 'rejected'])) {
             return back()->with('error', '❌ Booking ini sudah dibatalkan/ditolak sebelumnya.');
         }
@@ -228,7 +215,7 @@ class ScheduleController extends Controller
         $booking->update([
             'status' => 'cancelled',
             'rejected_at' => now(),
-            'rejection_reason' => 'Dibatalkan oleh ' . ($user->isKalab() ? 'Kalab' : 'Admin'),
+            'rejection_reason' => 'Dibatalkan oleh ' . ($user->role === 'kalab' ? 'Kalab' : ($user->role === 'admin' ? 'Admin' : 'Unknown')),
         ]);
 
         Log::info('Booking cancelled', [
@@ -249,26 +236,22 @@ class ScheduleController extends Controller
         $user = Auth::user();
         $date = $request->get('date', Carbon::today()->toDateString());
 
-        // Validate date format
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
             $date = Carbon::today()->toDateString();
         }
 
-        // Base query for bookings
         $bookingsQuery = Booking::with('user')
             ->whereDate('booking_date', $date)
             ->where('status', 'confirmed');
 
-        // ✅ Scope for Kalab/Teknisi
-        if (($user->isKalab() || $user->isTeknisi()) && !empty($user->lab_name)) {
+        if (($user->role === 'kalab' || $user->role === 'teknisi') && !empty($user->lab_name)) {
             $bookingsQuery->where('lab_name', $user->lab_name);
         }
 
         $bookings = $bookingsQuery->orderBy('start_time')->get();
 
-        // Get labs for filter
         $labsQuery = Lab::where('status', 'active')->orderBy('name');
-        if (($user->isKalab() || $user->isTeknisi()) && !empty($user->lab_name)) {
+        if (($user->role === 'kalab' || $user->role === 'teknisi') && !empty($user->lab_name)) {
             $labsQuery->where('name', $user->lab_name);
         }
         $labs = $labsQuery->get();
@@ -278,7 +261,6 @@ class ScheduleController extends Controller
 
     /**
      * Get available slots for a lab (AJAX) - Admin/Kalab/Teknisi
-     * ✅ FIX: Flexible time matching for time range bookings
      */
     public function availableSlots(Request $request)
     {
@@ -286,18 +268,15 @@ class ScheduleController extends Controller
         $labName = $request->get('lab');
         $date = $request->get('date');
 
-        // Validate input
         if (!$labName || !$date) {
             return response()->json(['error' => 'Missing required parameters'], 400);
         }
 
-        // Validate date format
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
             return response()->json(['error' => 'Invalid date format'], 400);
         }
 
-        // ✅ Authorization: Kalab/Teknisi hanya bisa cek slot lab sendiri
-        if (($user->isKalab() || $user->isTeknisi()) && !empty($user->lab_name)) {
+        if (($user->role === 'kalab' || $user->role === 'teknisi') && !empty($user->lab_name)) {
             if ($labName !== $user->lab_name) {
                 return response()->json(['error' => 'Unauthorized lab access'], 403);
             }
@@ -315,7 +294,6 @@ class ScheduleController extends Controller
             ['start' => '16:00', 'end' => '17:00', 'name' => 'Sesi 8'],
         ];
 
-        // Get confirmed bookings for this lab and date
         $confirmedBookings = Booking::where('lab_name', $labName)
             ->whereDate('booking_date', $date)
             ->where('status', 'confirmed')
@@ -323,7 +301,6 @@ class ScheduleController extends Controller
 
         $available = [];
         foreach ($sessions as $session) {
-            // Skip break time
             if ($session['is_break'] ?? false) {
                 $available[] = [
                     'session' => $session['name'],
@@ -339,13 +316,11 @@ class ScheduleController extends Controller
             $bookingInfo = null;
 
             foreach ($confirmedBookings as $booking) {
-                // ✅ Flexible time matching: handle '07:00' vs '07:00:00'
                 $dbStart = substr($booking->start_time, 0, 5);
                 $dbEnd = substr($booking->end_time, 0, 5);
                 $sessStart = $session['start'];
                 $sessEnd = $session['end'];
 
-                // ✅ Check for time range overlap
                 if ($sessStart < $dbEnd && $sessEnd > $dbStart) {
                     $isBooked = true;
                     $bookingInfo = "Terisi ({$dbStart} - {$dbEnd})";
@@ -371,16 +346,12 @@ class ScheduleController extends Controller
     public function getBookingStats(Request $request)
     {
         $user = Auth::user();
-
-        // Base query
         $query = Booking::query();
 
-        // ✅ Scope for Kalab/Teknisi
-        if (($user->isKalab() || $user->isTeknisi()) && !empty($user->lab_name)) {
+        if (($user->role === 'kalab' || $user->role === 'teknisi') && !empty($user->lab_name)) {
             $query->where('lab_name', $user->lab_name);
         }
 
-        // Date filter
         if ($request->filled('date')) {
             $query->whereDate('booking_date', $request->date);
         }

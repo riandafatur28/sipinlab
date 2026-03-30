@@ -154,6 +154,9 @@ Route::middleware('auth')->group(function () {
                 Route::get('/{lab}/edit', [LabManagementController::class, 'edit'])->name('edit');
                 Route::put('/{lab}', [LabManagementController::class, 'update'])->name('update');
                 Route::delete('/{lab}', [LabManagementController::class, 'destroy'])->name('destroy');
+
+                // ✅ Route untuk get lab stats (AJAX)
+                Route::get('/admin/labs/{lab}/stats', [LabManagementController::class, 'getLabStats'])->name('admin.labs.stats');
             });
 
             // Schedule Management

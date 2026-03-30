@@ -191,5 +191,124 @@
         @endif
     </div>
 
+    <!-- ======================================================================== -->
+<!-- ✅ SECTION 3: BOOKING MAHASISWA DENGAN ANDA SEBAGAI PEMBIMBING -->
+<!-- ======================================================================== -->
+<div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+        <div class="flex justify-between items-center">
+            <div>
+                <h2 class="text-xl font-bold text-gray-800">🎓 Booking dengan Anda sebagai Pembimbing</h2>
+                <p class="text-sm text-gray-600 mt-1">
+                    Riwayat peminjaman mahasiswa yang mencantumkan Anda sebagai dosen pembimbing
+                </p>
+            </div>
+            @if($supervisedStats['total'] > 0)
+            <span class="px-3 py-1 text-sm font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                {{ $supervisedStats['total'] }} Booking
+            </span>
+            @endif
+        </div>
+    </div>
+
+    <!-- Stats Mini Cards -->
+    <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 grid grid-cols-3 gap-4">
+        <div class="text-center">
+            <p class="text-2xl font-bold text-yellow-600">{{ $supervisedStats['pending'] ?? 0 }}</p>
+            <p class="text-xs text-gray-500">Menunggu</p>
+        </div>
+        <div class="text-center border-l border-gray-200">
+            <p class="text-2xl font-bold text-green-600">{{ $supervisedStats['confirmed'] ?? 0 }}</p>
+            <p class="text-xs text-gray-500">Dikonfirmasi</p>
+        </div>
+        <div class="text-center border-l border-gray-200">
+            <p class="text-2xl font-bold text-red-600">{{ $supervisedStats['rejected'] ?? 0 }}</p>
+            <p class="text-xs text-gray-500">Ditolak</p>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mahasiswa</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lab</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal & Sesi</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kegiatan</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @forelse($supervisedBookings as $booking)
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                                {{ substr($booking->user->name, 0, 1) }}
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">{{ $booking->user->name }}</p>
+                                <p class="text-xs text-gray-500">
+                                    {{ $booking->user->nim ?? 'N/A' }}
+                                    @if($booking->is_group)
+                                        <span class="ml-1 px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px]">
+                                            +{{ count($booking->members ?? []) }} anggota
+                                        </span>
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-700 font-medium">{{ $booking->lab_name }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">
+                        <p>{{ \Carbon\Carbon::parse($booking->booking_date)->locale('id')->isoFormat('DD MMM YYYY') }}</p>
+                        <p class="text-xs text-gray-500">{{ $booking->session ?? ($booking->start_time . ' - ' . $booking->end_time) }}</p>
+                    </td>
+                    <td class="px-6 py-4 text-sm">
+                        <p class="font-medium text-gray-800">{{ $booking->activity }}</p>
+                        <p class="text-xs text-gray-500 truncate max-w-[200px]" title="{{ $booking->purpose }}">
+                            {{ Str::limit($booking->purpose, 40) }}
+                        </p>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full {{ $booking->getStatusBadgeClass() }}">
+                            {{ $booking->getStatusLabel() }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm">
+                        <a href="{{ route('booking.show', $booking->id) }}"
+                           class="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium">
+                            Detail
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center">
+                        <div class="flex flex-col items-center gap-3">
+                            <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                            <p class="text-gray-500">Belum ada mahasiswa yang mencantumkan Anda sebagai pembimbing.</p>
+                            <p class="text-xs text-gray-400">Mahasiswa dapat memilih Anda saat mengajukan booking.</p>
+                        </div>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    @if($supervisedBookings->hasPages())
+    <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+        {{ $supervisedBookings->links() }}
+    </div>
+    @endif
+</div>
+
 </div>
 @endsection

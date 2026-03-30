@@ -28,7 +28,7 @@ class UserManagementController extends Controller
             $query->where('role', 'dosen')->where('is_kalab', true);
         }
 
-        // Search by name, email, NIM, or NIP
+        // ✅ Search by name, email, NIM, or NIP (AJAX compatible)
         if ($request->filled('search')) {
             $query->where(function($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
@@ -38,7 +38,13 @@ class UserManagementController extends Controller
             });
         }
 
-        $users = $query->orderBy('created_at', 'desc')->paginate(15);
+        // ✅ Pagination: 10 data per page
+        $users = $query->orderBy('created_at', 'desc')->paginate(10);
+
+        // ✅ Return JSON if AJAX request (for live search)
+        if ($request->ajax()) {
+            return view('admin.users.partials.table', compact('users'))->render();
+        }
 
         return view('admin.users.index', compact('users'));
     }
@@ -67,7 +73,7 @@ class UserManagementController extends Controller
             'golongan' => ['nullable', 'string', 'max:10'],
             'phone' => ['nullable', 'string', 'max:20'],
             'is_kalab' => ['nullable', 'boolean'],
-            'lab_name' => ['nullable', 'string', 'max:255'], // ✅ Validasi lab_name
+            'lab_name' => ['nullable', 'string', 'max:255'],
         ]);
 
         // Default password = NIM/NIP
@@ -103,23 +109,20 @@ class UserManagementController extends Controller
             'golongan' => $validated['golongan'] ?? null,
             'phone' => $validated['phone'] ?? null,
             'is_kalab' => $validated['is_kalab'] ?? false,
-            'lab_name' => $validated['lab_name'] ?? null, // ✅ Simpan lab_name
+            'lab_name' => $validated['lab_name'] ?? null,
         ];
 
         // Set NIM/NIP dan Prodi sesuai role
         if ($validated['role'] === 'mahasiswa') {
             $userData['nim'] = $validated['nim'] ?? null;
-            $userData['prodi'] = 'Teknik Informatika'; // Auto-set prodi untuk mahasiswa
+            $userData['prodi'] = 'Teknik Informatika';
         } elseif ($validated['role'] === 'dosen') {
             $userData['nip'] = $validated['nip'] ?? null;
-            $userData['prodi'] = 'Teknik Informatika'; // Auto-set prodi untuk dosen
+            $userData['prodi'] = 'Teknik Informatika';
         } elseif ($validated['role'] === 'teknisi') {
             $userData['nip'] = $validated['nip'] ?? null;
-            // prodi tidak diisi untuk teknisi (karena khusus TI)
         } else {
-            // admin atau ketua_lab
             $userData['nip'] = $validated['nip'] ?? null;
-            // prodi tidak diisi untuk admin/kalab
         }
 
         User::create($userData);
@@ -159,7 +162,7 @@ class UserManagementController extends Controller
             'golongan' => ['nullable', 'string', 'max:10'],
             'phone' => ['nullable', 'string', 'max:20'],
             'is_kalab' => ['nullable', 'boolean'],
-            'lab_name' => ['nullable', 'string', 'max:255'], // ✅ Validasi lab_name
+            'lab_name' => ['nullable', 'string', 'max:255'],
         ]);
 
         // ✅ Logic: Hanya dosen yang bisa jadi kalab
@@ -199,7 +202,7 @@ class UserManagementController extends Controller
             'golongan' => $validated['golongan'] ?? null,
             'phone' => $validated['phone'] ?? null,
             'is_kalab' => $validated['is_kalab'] ?? false,
-            'lab_name' => $validated['lab_name'] ?? null, // ✅ Update lab_name
+            'lab_name' => $validated['lab_name'] ?? null,
         ];
 
         // Set NIM/NIP sesuai role
@@ -214,12 +217,9 @@ class UserManagementController extends Controller
         } elseif ($validated['role'] === 'teknisi') {
             $updateData['nip'] = $validated['nip'] ?? null;
             $updateData['nim'] = null;
-            // prodi tidak diubah untuk teknisi
         } else {
-            // admin atau ketua_lab
             $updateData['nim'] = null;
             $updateData['nip'] = $validated['nip'] ?? null;
-            // prodi tidak diubah untuk admin/kalab
         }
 
         $user->update($updateData);
@@ -233,12 +233,10 @@ class UserManagementController extends Controller
      */
     public function destroy(User $user)
     {
-        // ✅ Tidak bisa hapus admin
         if ($user->role === 'admin') {
             return back()->with('error', '❌ Tidak dapat menghapus admin!');
         }
 
-        // ✅ Jika user yang dihapus adalah Kalab aktif, beri warning
         if ($user->isKalab()) {
             Log::warning('Kalab user deleted', [
                 'kalab_name' => $user->name,
@@ -257,7 +255,6 @@ class UserManagementController extends Controller
      */
     public function resetPassword(User $user)
     {
-        // Extract NIM/NIP from email atau gunakan field yang ada
         $defaultPassword = $user->nim ?? $user->nip ?? explode('@', $user->email)[0];
 
         $user->update([
@@ -284,7 +281,6 @@ class UserManagementController extends Controller
 
         $newKalab = User::find($validated['new_kalab_id']);
 
-        // Validasi: Harus dosen dan bukan Kalab saat ini
         if (!$newKalab || !$newKalab->isDosen()) {
             return back()->with('error', '❌ User yang dipilih bukan Dosen!');
         }
@@ -293,7 +289,6 @@ class UserManagementController extends Controller
             return back()->with('info', 'ℹ️ User ini sudah menjabat sebagai Kalab.');
         }
 
-        // ✅ Transfer jabatan: copot yang lama, angkat yang baru
         User::where('role', 'dosen')->where('is_kalab', true)->update(['is_kalab' => false]);
         $newKalab->update(['is_kalab' => true]);
 
@@ -311,17 +306,14 @@ class UserManagementController extends Controller
      */
     public function toggleKalabStatus(User $user)
     {
-        // Hanya bisa toggle untuk dosen
         if (!$user->isDosen()) {
             return back()->with('error', '❌ Hanya Dosen yang dapat memiliki jabatan Kalab!');
         }
 
         if ($user->is_kalab) {
-            // Jika sudah Kalab, copot jabatan
             $user->update(['is_kalab' => false]);
             $message = "✅ Jabatan Kalab dicopot dari <strong>{$user->name}</strong>.";
         } else {
-            // Jika belum Kalab, angkat jadi Kalab (copot yang lama otomatis)
             User::where('role', 'dosen')->where('is_kalab', true)->update(['is_kalab' => false]);
             $user->update(['is_kalab' => true]);
             $message = "✅ <strong>{$user->name}</strong> berhasil diangkat menjadi Kalab!";

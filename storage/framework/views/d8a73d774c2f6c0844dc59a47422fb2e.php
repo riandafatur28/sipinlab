@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<?php $__env->startSection('title', 'Kelola Jadwal - Admin'); ?>
 
-@section('title', 'Kelola Jadwal - Admin')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="max-w-7xl mx-auto">
 
     <!-- Header dengan Info Role -->
@@ -13,25 +11,27 @@
         </div>
 
         <!-- Role Badge -->
-        @if(Auth::user()->isKalab() || Auth::user()->isTeknisi())
+        <?php if(Auth::user()->isKalab() || Auth::user()->isTeknisi()): ?>
             <div class="px-4 py-2 bg-indigo-100 text-indigo-800 rounded-lg text-sm font-medium">
-                @if(Auth::user()->isKalab())
-                    👔 Mode Kalab: {{ Auth::user()->lab_name ?? 'Semua Lab' }}
-                @else
-                    🔧 Mode Teknisi: {{ Auth::user()->lab_name ?? 'Semua Lab' }}
-                @endif
+                <?php if(Auth::user()->isKalab()): ?>
+                    👔 Mode Kalab: <?php echo e(Auth::user()->lab_name ?? 'Semua Lab'); ?>
+
+                <?php else: ?>
+                    🔧 Mode Teknisi: <?php echo e(Auth::user()->lab_name ?? 'Semua Lab'); ?>
+
+                <?php endif; ?>
             </div>
-        @endif
+        <?php endif; ?>
     </div>
 
     <!-- ✅ Filter Form (Live Search + Filters) -->
     <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
-        <form id="scheduleSearchForm" method="GET" action="{{ route('admin.schedule.index') }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <form id="scheduleSearchForm" method="GET" action="<?php echo e(route('admin.schedule.index')); ?>" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
 
             <!-- ✅ Live Search Input -->
             <div class="lg:col-span-2 relative">
                 <input type="text" name="search" id="searchInput" placeholder="Cari nama user, NIM, NIP..."
-                       value="{{ request('search') }}"
+                       value="<?php echo e(request('search')); ?>"
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 pl-10"
                        autocomplete="off">
                 <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -46,21 +46,22 @@
             <div>
                 <select name="lab" id="labFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     <option value="">Semua Lab</option>
-                    @foreach($labs as $code => $name)
-                        <option value="{{ $name }}" {{ request('lab') == $name ? 'selected' : '' }}>
-                            {{ $name }}
+                    <?php $__currentLoopData = $labs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $code => $name): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($name); ?>" <?php echo e(request('lab') == $name ? 'selected' : ''); ?>>
+                            <?php echo e($name); ?>
+
                         </option>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
 
             <!-- Date Range -->
             <div>
-                <input type="date" name="start_date" id="startDate" value="{{ request('start_date') }}"
+                <input type="date" name="start_date" id="startDate" value="<?php echo e(request('start_date')); ?>"
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
-                <input type="date" name="end_date" id="endDate" value="{{ request('end_date') }}"
+                <input type="date" name="end_date" id="endDate" value="<?php echo e(request('end_date')); ?>"
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
             </div>
 
@@ -68,49 +69,49 @@
             <div class="flex gap-2">
                 <select name="status" id="statusFilter" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     <option value="">Semua Status</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>⏳ Pending</option>
-                    <option value="approved_dosen" {{ request('status') == 'approved_dosen' ? 'selected' : '' }}>✅ Dosen</option>
-                    <option value="approved_teknisi" {{ request('status') == 'approved_teknisi' ? 'selected' : '' }}>✅ Teknisi</option>
-                    <option value="approved_kalab" {{ request('status') == 'approved_kalab' ? 'selected' : '' }}>✅ Kalab</option>
-                    <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>🎉 Confirmed</option>
-                    <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>❌ Rejected</option>
-                    <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>🗑️ Cancelled</option>
+                    <option value="pending" <?php echo e(request('status') == 'pending' ? 'selected' : ''); ?>>⏳ Pending</option>
+                    <option value="approved_dosen" <?php echo e(request('status') == 'approved_dosen' ? 'selected' : ''); ?>>✅ Dosen</option>
+                    <option value="approved_teknisi" <?php echo e(request('status') == 'approved_teknisi' ? 'selected' : ''); ?>>✅ Teknisi</option>
+                    <option value="approved_kalab" <?php echo e(request('status') == 'approved_kalab' ? 'selected' : ''); ?>>✅ Kalab</option>
+                    <option value="confirmed" <?php echo e(request('status') == 'confirmed' ? 'selected' : ''); ?>>🎉 Confirmed</option>
+                    <option value="rejected" <?php echo e(request('status') == 'rejected' ? 'selected' : ''); ?>>❌ Rejected</option>
+                    <option value="cancelled" <?php echo e(request('status') == 'cancelled' ? 'selected' : ''); ?>>🗑️ Cancelled</option>
                 </select>
                 <button type="submit" id="submitBtn" class="hidden"></button>
             </div>
         </form>
 
-        @if(request()->anyFilled(['search', 'lab', 'start_date', 'end_date', 'status']))
+        <?php if(request()->anyFilled(['search', 'lab', 'start_date', 'end_date', 'status'])): ?>
         <div class="mt-3 pt-3 border-t border-gray-200">
-            <a href="{{ route('admin.schedule.index') }}" class="text-sm text-gray-500 hover:text-gray-700">
+            <a href="<?php echo e(route('admin.schedule.index')); ?>" class="text-sm text-gray-500 hover:text-gray-700">
                 🔄 Reset semua filter
             </a>
         </div>
-        @endif
+        <?php endif; ?>
         <p class="text-xs text-gray-400 mt-2">💡 Ketik atau pilih filter untuk mencari otomatis...</p>
     </div>
 
     <!-- Stats Cards -->
-    @if(isset($stats))
+    <?php if(isset($stats)): ?>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <p class="text-sm text-gray-500">Total Booking</p>
-            <p class="text-2xl font-bold text-blue-600">{{ $stats['total_booking'] ?? 0 }}</p>
+            <p class="text-2xl font-bold text-blue-600"><?php echo e($stats['total_booking'] ?? 0); ?></p>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <p class="text-sm text-gray-500">Confirmed</p>
-            <p class="text-2xl font-bold text-green-600">{{ $stats['confirmed'] ?? 0 }}</p>
+            <p class="text-2xl font-bold text-green-600"><?php echo e($stats['confirmed'] ?? 0); ?></p>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <p class="text-sm text-gray-500">Pending</p>
-            <p class="text-2xl font-bold text-yellow-600">{{ $stats['pending'] ?? 0 }}</p>
+            <p class="text-2xl font-bold text-yellow-600"><?php echo e($stats['pending'] ?? 0); ?></p>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <p class="text-sm text-gray-500">Hari Ini</p>
-            <p class="text-2xl font-bold text-purple-600">{{ $stats['hari_ini'] ?? 0 }}</p>
+            <p class="text-2xl font-bold text-purple-600"><?php echo e($stats['hari_ini'] ?? 0); ?></p>
         </div>
     </div>
-    @endif
+    <?php endif; ?>
 
     <!-- Booking List Table -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -127,67 +128,73 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200" id="bookingTableBody">
-                    @forelse($bookings as $booking)
+                    <?php $__empty_1 = true; $__currentLoopData = $bookings; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $booking): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="px-4 py-3 text-sm">
                             <div>
-                                <div class="font-medium text-gray-900">{{ $booking->user->name }}</div>
+                                <div class="font-medium text-gray-900"><?php echo e($booking->user->name); ?></div>
                                 <div class="text-xs text-gray-500">
-                                    {{ ucfirst($booking->user->role) }}
-                                    @if($booking->user->role === 'mahasiswa' && $booking->user->nim)
-                                        • {{ $booking->user->nim }}
-                                    @elseif($booking->user->role !== 'mahasiswa' && $booking->user->nip)
-                                        • {{ $booking->user->nip }}
-                                    @endif
+                                    <?php echo e(ucfirst($booking->user->role)); ?>
+
+                                    <?php if($booking->user->role === 'mahasiswa' && $booking->user->nim): ?>
+                                        • <?php echo e($booking->user->nim); ?>
+
+                                    <?php elseif($booking->user->role !== 'mahasiswa' && $booking->user->nip): ?>
+                                        • <?php echo e($booking->user->nip); ?>
+
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $booking->lab_name }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900"><?php echo e($booking->lab_name); ?></td>
                         <td class="px-4 py-3 text-sm text-gray-600">
-                            {{ \Carbon\Carbon::parse($booking->booking_date)->isoFormat('DD MMM YYYY') }}
+                            <?php echo e(\Carbon\Carbon::parse($booking->booking_date)->isoFormat('DD MMM YYYY')); ?>
+
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-600">
-                            {{ $booking->session }}<br>
+                            <?php echo e($booking->session); ?><br>
                             <span class="text-xs text-gray-400">
-                                {{ $booking->start_time }} - {{ $booking->end_time }}
+                                <?php echo e($booking->start_time); ?> - <?php echo e($booking->end_time); ?>
+
                             </span>
                         </td>
                         <td class="px-4 py-3 text-sm">
                             <span class="px-2 py-1 text-xs rounded-full font-semibold
-                                @if($booking->status === 'confirmed') bg-green-100 text-green-800
-                                @elseif($booking->status === 'pending') bg-yellow-100 text-yellow-800
-                                @elseif($booking->status === 'approved_dosen') bg-blue-100 text-blue-800
-                                @elseif($booking->status === 'approved_teknisi') bg-indigo-100 text-indigo-800
-                                @elseif($booking->status === 'approved_kalab') bg-purple-100 text-purple-800
-                                @elseif($booking->status === 'rejected') bg-red-100 text-red-800
-                                @elseif($booking->status === 'cancelled') bg-gray-100 text-gray-800
-                                @else bg-gray-100 text-gray-800 @endif">
-                                {{ ucfirst(str_replace('_', ' ', $booking->status)) }}
+                                <?php if($booking->status === 'confirmed'): ?> bg-green-100 text-green-800
+                                <?php elseif($booking->status === 'pending'): ?> bg-yellow-100 text-yellow-800
+                                <?php elseif($booking->status === 'approved_dosen'): ?> bg-blue-100 text-blue-800
+                                <?php elseif($booking->status === 'approved_teknisi'): ?> bg-indigo-100 text-indigo-800
+                                <?php elseif($booking->status === 'approved_kalab'): ?> bg-purple-100 text-purple-800
+                                <?php elseif($booking->status === 'rejected'): ?> bg-red-100 text-red-800
+                                <?php elseif($booking->status === 'cancelled'): ?> bg-gray-100 text-gray-800
+                                <?php else: ?> bg-gray-100 text-gray-800 <?php endif; ?>">
+                                <?php echo e(ucfirst(str_replace('_', ' ', $booking->status))); ?>
+
                             </span>
                         </td>
                         <!-- ✅ AKSI: Satu Baris, Tanpa Icon -->
                         <td class="px-4 py-3 text-sm">
                             <div class="flex items-center gap-3 whitespace-nowrap">
-                                <a href="{{ route('admin.schedule.show', $booking) }}" class="text-blue-600 hover:text-blue-800 font-medium">
+                                <a href="<?php echo e(route('admin.schedule.show', $booking)); ?>" class="text-blue-600 hover:text-blue-800 font-medium">
                                     Detail
                                 </a>
                                 <span class="text-gray-300">|</span>
-                                <button onclick="openStatusModal({{ $booking->id }}, '{{ $booking->status }}')" class="text-green-600 hover:text-green-800 font-medium">
+                                <button onclick="openStatusModal(<?php echo e($booking->id); ?>, '<?php echo e($booking->status); ?>')" class="text-green-600 hover:text-green-800 font-medium">
                                     Status
                                 </button>
-                                @if(!Auth::user()->isTeknisi() && !in_array($booking->status, ['cancelled', 'rejected']))
+                                <?php if(!Auth::user()->isTeknisi() && !in_array($booking->status, ['cancelled', 'rejected'])): ?>
                                     <span class="text-gray-300">|</span>
-                                    <form action="{{ route('admin.schedule.cancel', $booking) }}" method="POST" class="inline">
-                                        @csrf
+                                    <form action="<?php echo e(route('admin.schedule.cancel', $booking)); ?>" method="POST" class="inline">
+                                        <?php echo csrf_field(); ?>
                                         <button type="submit" onclick="return confirm('Batalkan booking ini?')" class="text-red-600 hover:text-red-800 font-medium">
                                             Batal
                                         </button>
                                     </form>
-                                @endif
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>
-                    @empty
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <tr>
                         <td colspan="6" class="px-4 py-12 text-center text-gray-500">
                             <div class="flex flex-col items-center gap-3">
@@ -195,20 +202,21 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
                                 <p>Tidak ada data booking yang sesuai filter.</p>
-                                <a href="{{ route('admin.schedule.index') }}" class="text-blue-600 hover:underline">
+                                <a href="<?php echo e(route('admin.schedule.index')); ?>" class="text-blue-600 hover:underline">
                                     🔄 Reset filter
                                 </a>
                             </div>
                         </td>
                     </tr>
-                    @endforelse
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
 
        <!-- ✅ Pagination dengan warna putih -->
         <div class="px-4 py-3 border-t border-gray-200 bg-white">
-            {{ $bookings->links('vendor.pagination.white') }}
+            <?php echo e($bookings->links('vendor.pagination.white')); ?>
+
         </div>
     </div>
 
@@ -228,29 +236,29 @@
             </button>
         </div>
         <form id="statusForm" method="POST">
-            @csrf
+            <?php echo csrf_field(); ?>
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Status Baru</label>
                 <select name="status" id="statusSelect" required
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     <option value="pending">⏳ Pending</option>
                     <option value="approved_dosen">✅ Disetujui Dosen</option>
-                    @if(Auth::user()->isTeknisi())
+                    <?php if(Auth::user()->isTeknisi()): ?>
                         <option value="approved_teknisi">✅ Disetujui Teknisi (Final)</option>
                         <option value="rejected">❌ Rejected</option>
-                    @else
+                    <?php else: ?>
                         <option value="approved_teknisi">✅ Disetujui Teknisi</option>
                         <option value="approved_kalab">✅ Disetujui Ka Lab</option>
                         <option value="confirmed">🎉 Confirmed</option>
                         <option value="rejected">❌ Rejected</option>
                         <option value="cancelled">🗑️ Cancelled</option>
-                    @endif
+                    <?php endif; ?>
                 </select>
-                @if(Auth::user()->isTeknisi())
+                <?php if(Auth::user()->isTeknisi()): ?>
                     <p class="text-xs text-indigo-600 mt-1">
                         ℹ️ Teknisi hanya dapat menyetujui sampai tahap "Disetujui Teknisi". Approval final dilakukan oleh Ka Lab.
                     </p>
-                @endif
+                <?php endif; ?>
             </div>
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Catatan (Opsional)</label>
@@ -269,7 +277,7 @@
 </div>
 
 <!-- ✅ CSS untuk White Pagination -->
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
     .pagination-white-custom nav[role="navigation"] span,
     .pagination-white-custom nav[role="navigation"] a {
@@ -306,11 +314,11 @@
         height: 1.25rem;
     }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 // ✅ Modal Functions for Status Update
 let currentBookingId = null;
@@ -320,7 +328,7 @@ function openStatusModal(bookingId, currentStatus) {
     const statusSelect = document.getElementById('statusSelect');
     statusSelect.value = currentStatus;
 
-    const isTeknisi = {{ Auth::user()->isTeknisi() ? 'true' : 'false' }};
+    const isTeknisi = <?php echo e(Auth::user()->isTeknisi() ? 'true' : 'false'); ?>;
     if (isTeknisi) {
         const forbiddenValues = ['approved_kalab', 'confirmed', 'cancelled'];
         Array.from(statusSelect.options).forEach(option => {
@@ -381,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if(endDate.value) params.append('end_date', endDate.value);
         params.append('ajax', '1'); // Mark as AJAX request
 
-        const url = "{{ route('admin.schedule.index') }}" + "?" + params.toString();
+        const url = "<?php echo e(route('admin.schedule.index')); ?>" + "?" + params.toString();
 
         fetch(url, {
             headers: {
@@ -443,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ✅ Auto-hide forbidden options for Teknisi on page load
-    const isTeknisi = {{ Auth::user()->isTeknisi() ? 'true' : 'false' }};
+    const isTeknisi = <?php echo e(Auth::user()->isTeknisi() ? 'true' : 'false'); ?>;
     if (isTeknisi) {
         const statusSelect = document.getElementById('statusSelect');
         if (statusSelect) {
@@ -458,4 +466,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH D:\project\laravel_project\sipinlab\resources\views/admin/schedule/index.blade.php ENDPATH**/ ?>

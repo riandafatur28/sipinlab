@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="max-w-3xl mx-auto">
-    
+
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-800">Tambah Jadwal Kuliah</h1>
         <p class="text-gray-600">Input jadwal kuliah regular yang menggunakan laboratorium</p>
@@ -12,37 +12,40 @@
 
     <form action="{{ route('admin.class-schedules.store') }}" method="POST" class="bg-white rounded-xl shadow-lg p-8">
         @csrf
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             <!-- Mata Kuliah -->
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Nama Mata Kuliah <span class="text-red-500">*</span></label>
                 <input type="text" name="course_name" required value="{{ old('course_name') }}"
                        placeholder="Contoh: Praktikum Pemrograman Web"
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('course_name') border-red-500 @enderror">
+                @error('course_name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <!-- Kode MK -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Kode Mata Kuliah <span class="text-red-500">*</span></label>
                 <input type="text" name="course_code" required value="{{ old('course_code') }}"
-                       placeholder="Contoh: TIF123"
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                       placeholder="Contoh: TIF123" maxlength="20"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('course_code') border-red-500 @enderror">
+                @error('course_code') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <!-- Kelas -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Nama Kelas <span class="text-red-500">*</span></label>
                 <input type="text" name="class_name" required value="{{ old('class_name') }}"
-                       placeholder="Contoh: A / B / C"
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                       placeholder="Contoh: A / B / C" maxlength="20"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('class_name') border-red-500 @enderror">
+                @error('class_name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <!-- ✅ Golongan -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Golongan <span class="text-red-500">*</span></label>
-                <select name="golongan" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <select name="golongan" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('golongan') border-red-500 @enderror">
                     <option value="">-- Pilih Golongan --</option>
                     @foreach($golongans as $golongan)
                         <option value="{{ $golongan }}" {{ old('golongan') == $golongan ? 'selected' : '' }}>
@@ -50,102 +53,102 @@
                         </option>
                     @endforeach
                 </select>
+                @error('golongan') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 <p class="mt-1 text-xs text-gray-500">Golongan praktikum: A, B, atau C</p>
             </div>
 
             <!-- Lab -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Laboratorium <span class="text-red-500">*</span></label>
-                <select name="lab_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <select name="lab_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('lab_name') border-red-500 @enderror">
                     <option value="">-- Pilih Lab --</option>
                     @foreach($labs as $code => $name)
                         <option value="{{ $name }}" {{ old('lab_name') == $name ? 'selected' : '' }}>{{ $name }}</option>
                     @endforeach
                 </select>
+                @error('lab_name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <!-- Dosen -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Dosen Pengampu <span class="text-red-500">*</span></label>
-                <select name="lecturer_id" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <select name="lecturer_id" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('lecturer_id') border-red-500 @enderror">
                     <option value="">-- Pilih Dosen --</option>
                     @foreach($lecturers as $id => $name)
                         <option value="{{ $id }}" {{ old('lecturer_id') == $id ? 'selected' : '' }}>{{ $name }}</option>
                     @endforeach
                 </select>
+                @error('lecturer_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <!-- Semester -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Semester <span class="text-red-500">*</span></label>
                 <input type="number" name="semester" required min="1" max="14" value="{{ old('semester', 1) }}"
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('semester') border-red-500 @enderror">
+                @error('semester') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <!-- Hari -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Hari <span class="text-red-500">*</span></label>
-                <select name="day" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <select name="day" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('day') border-red-500 @enderror">
                     <option value="">-- Pilih Hari --</option>
                     @foreach($days as $day)
                         <option value="{{ $day }}" {{ old('day') == $day ? 'selected' : '' }}>{{ $day }}</option>
                     @endforeach
                 </select>
-            </div>
-
-            <!-- Sesi -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Sesi <span class="text-red-500">*</span></label>
-                <select name="session" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    <option value="">-- Pilih Sesi --</option>
-                    @foreach($sessions as $session)
-                        <option value="{{ $session }}" {{ old('session') == $session ? 'selected' : '' }}>{{ $session }}</option>
-                    @endforeach
-                </select>
+                @error('day') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <!-- Jam Mulai -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Jam Mulai <span class="text-red-500">*</span></label>
                 <input type="time" name="start_time" required value="{{ old('start_time') }}"
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('start_time') border-red-500 @enderror">
+                @error('start_time') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <!-- Jam Selesai -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Jam Selesai <span class="text-red-500">*</span></label>
                 <input type="time" name="end_time" required value="{{ old('end_time') }}"
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('end_time') border-red-500 @enderror">
+                @error('end_time') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <!-- Jumlah Mahasiswa -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah Mahasiswa <span class="text-red-500">*</span></label>
-                <input type="number" name="students_count" required min="1" value="{{ old('students_count', 30) }}"
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <input type="number" name="students_count" required min="1" max="200" value="{{ old('students_count', 30) }}"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('students_count') border-red-500 @enderror">
+                @error('students_count') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                <p class="mt-1 text-xs text-gray-500">Harus konsisten dengan jadwal lain untuk Semester+Golongan yang sama</p>
             </div>
 
             <!-- Status -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Status <span class="text-red-500">*</span></label>
-                <select name="status" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <select name="status" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('status') border-red-500 @enderror">
                     <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>✓ Aktif</option>
                     <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>✗ Non-Aktif</option>
                 </select>
+                @error('status') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <!-- Catatan -->
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
-                <textarea name="notes" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                <textarea name="notes" rows="2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 @error('notes') border-red-500 @enderror"
                           placeholder="Catatan tambahan (opsional)">{{ old('notes') }}</textarea>
+                @error('notes') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
         </div>
 
-        <div class="flex justify-end gap-4 mt-8">
-            <a href="{{ route('admin.class-schedules.index') }}" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-400">Batal</a>
-            <button type="submit" class="px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-lg">Simpan Jadwal</button>
+        <div class="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
+            <a href="{{ route('admin.class-schedules.index') }}" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-400 transition-colors">Batal</a>
+            <button type="submit" class="px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-lg">💾 Simpan Jadwal</button>
         </div>
     </form>
 </div>

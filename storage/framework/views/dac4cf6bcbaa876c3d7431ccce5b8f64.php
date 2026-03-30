@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<?php $__env->startSection('title', 'Jadwal Kuliah Lab - Admin'); ?>
 
-@section('title', 'Jadwal Kuliah Lab - Admin')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="max-w-7xl mx-auto">
 
     <!-- Header -->
@@ -11,19 +9,19 @@
             <h1 class="text-3xl font-bold text-gray-800">Jadwal Kuliah Laboratorium</h1>
             <p class="text-gray-600">Kelola jadwal kuliah regular yang menggunakan lab</p>
         </div>
-        <a href="{{ route('admin.class-schedules.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+        <a href="<?php echo e(route('admin.class-schedules.create')); ?>" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
             + Tambah Jadwal
         </a>
     </div>
 
     <!-- ✅ Filter Form (Live Search + Filters) -->
     <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
-        <form id="scheduleSearchForm" method="GET" action="{{ route('admin.class-schedules.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <form id="scheduleSearchForm" method="GET" action="<?php echo e(route('admin.class-schedules.index')); ?>" class="grid grid-cols-1 md:grid-cols-5 gap-4">
 
             <!-- ✅ Live Search Input -->
             <div class="relative">
                 <input type="text" name="search" id="searchInput" placeholder="Cari mata kuliah..."
-                       value="{{ request('search') }}"
+                       value="<?php echo e(request('search')); ?>"
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 pl-10"
                        autocomplete="off">
                 <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,9 +36,9 @@
             <div>
                 <select name="lab" id="labFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     <option value="">Semua Lab</option>
-                    @foreach($labs as $code => $name)
-                        <option value="{{ $name }}" {{ request('lab') == $name ? 'selected' : '' }}>{{ $name }}</option>
-                    @endforeach
+                    <?php $__currentLoopData = $labs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $code => $name): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($name); ?>" <?php echo e(request('lab') == $name ? 'selected' : ''); ?>><?php echo e($name); ?></option>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
 
@@ -48,9 +46,9 @@
             <div>
                 <select name="golongan" id="golonganFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     <option value="">Semua Golongan</option>
-                    @foreach($golongans as $gol)
-                        <option value="{{ $gol }}" {{ request('golongan') == $gol ? 'selected' : '' }}>Golongan {{ $gol }}</option>
-                    @endforeach
+                    <?php $__currentLoopData = $golongans; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $gol): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($gol); ?>" <?php echo e(request('golongan') == $gol ? 'selected' : ''); ?>>Golongan <?php echo e($gol); ?></option>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
 
@@ -58,9 +56,9 @@
             <div>
                 <select name="day" id="dayFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     <option value="">Semua Hari</option>
-                    @foreach($days as $day)
-                        <option value="{{ $day }}" {{ request('day') == $day ? 'selected' : '' }}>{{ $day }}</option>
-                    @endforeach
+                    <?php $__currentLoopData = $days; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $day): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($day); ?>" <?php echo e(request('day') == $day ? 'selected' : ''); ?>><?php echo e($day); ?></option>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
 
@@ -68,8 +66,8 @@
             <div class="flex gap-2">
                 <select name="status" id="statusFilter" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     <option value="">Semua Status</option>
-                    <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    <option value="active" <?php echo e(request('status') == 'active' ? 'selected' : ''); ?>>Active</option>
+                    <option value="inactive" <?php echo e(request('status') == 'inactive' ? 'selected' : ''); ?>>Inactive</option>
                 </select>
                 <!-- Hidden Submit Button for AJAX -->
                 <button type="submit" id="submitBtn" class="hidden"></button>
@@ -77,36 +75,36 @@
         </form>
 
         <!-- ✅ Tombol Reset - DI KIRI, dengan ID untuk JS, hanya muncul saat filter aktif -->
-        @if(request()->anyFilled(['search', 'lab', 'golongan', 'day', 'status']))
+        <?php if(request()->anyFilled(['search', 'lab', 'golongan', 'day', 'status'])): ?>
         <div id="resetButtonContainer" class="mt-3 pt-3 border-t border-gray-200 flex items-center">
             <button type="button" onclick="resetFilters()"
                     class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
                 <span>🔄</span> Reset semua filter
             </button>
         </div>
-        @endif
+        <?php endif; ?>
 
         <p class="text-xs text-gray-400 mt-2">💡 Ketik atau pilih filter untuk mencari otomatis...</p>
     </div>
 
     <!-- ✅ Stats Cards -->
-    @if(isset($stats))
+    <?php if(isset($stats)): ?>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <p class="text-sm text-gray-500">Total Jadwal</p>
-            <p class="text-2xl font-bold text-blue-600">{{ $stats['total_jadwal'] ?? 0 }}</p>
+            <p class="text-2xl font-bold text-blue-600"><?php echo e($stats['total_jadwal'] ?? 0); ?></p>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <p class="text-sm text-gray-500">Total Mahasiswa Unik</p>
-            <p class="text-2xl font-bold text-purple-600">{{ $stats['total_mahasiswa_unik'] ?? 0 }}</p>
+            <p class="text-2xl font-bold text-purple-600"><?php echo e($stats['total_mahasiswa_unik'] ?? 0); ?></p>
             <small class="text-xs text-gray-400">Berdasarkan Semester & Golongan</small>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <p class="text-sm text-gray-500">Lab Terpakai</p>
-            <p class="text-2xl font-bold text-indigo-600">{{ $stats['lab_terpakai'] ?? 0 }}</p>
+            <p class="text-2xl font-bold text-indigo-600"><?php echo e($stats['lab_terpakai'] ?? 0); ?></p>
         </div>
     </div>
-    @endif
+    <?php endif; ?>
 
     <!-- Schedule List Table -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -126,54 +124,56 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200" id="scheduleTableBody">
-                    @forelse($schedules as $schedule)
+                    <?php $__empty_1 = true; $__currentLoopData = $schedules; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $schedule): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 text-sm">
-                            <div class="font-medium text-gray-900">{{ $schedule->course_name }}</div>
-                            <div class="text-xs text-gray-500">{{ $schedule->course_code }} | Kelas {{ $schedule->class_name }}</div>
+                            <div class="font-medium text-gray-900"><?php echo e($schedule->course_name); ?></div>
+                            <div class="text-xs text-gray-500"><?php echo e($schedule->course_code); ?> | Kelas <?php echo e($schedule->class_name); ?></div>
                         </td>
-                        <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $schedule->lab_name }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900"><?php echo e($schedule->lab_name); ?></td>
                         <td class="px-4 py-3 text-sm">
                             <span class="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-800 font-semibold">
-                                {{ $schedule->semester }}
+                                <?php echo e($schedule->semester); ?>
+
                             </span>
                         </td>
                         <td class="px-4 py-3 text-sm">
                             <span class="px-2 py-1 text-xs rounded-full font-semibold
-                                @if($schedule->golongan === 'A') bg-blue-100 text-blue-800
-                                @elseif($schedule->golongan === 'B') bg-green-100 text-green-800
-                                @elseif($schedule->golongan === 'C') bg-purple-100 text-purple-800
-                                @else bg-gray-100 text-gray-800 @endif">
-                                {{ $schedule->golongan }}
+                                <?php if($schedule->golongan === 'A'): ?> bg-blue-100 text-blue-800
+                                <?php elseif($schedule->golongan === 'B'): ?> bg-green-100 text-green-800
+                                <?php elseif($schedule->golongan === 'C'): ?> bg-purple-100 text-purple-800
+                                <?php else: ?> bg-gray-100 text-gray-800 <?php endif; ?>">
+                                <?php echo e($schedule->golongan); ?>
+
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ $schedule->day }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ $schedule->start_time }} - {{ $schedule->end_time }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ $schedule->lecturer->name ?? '-' }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600"><?php echo e($schedule->day); ?></td>
+                        <td class="px-4 py-3 text-sm text-gray-600"><?php echo e($schedule->start_time); ?> - <?php echo e($schedule->end_time); ?></td>
+                        <td class="px-4 py-3 text-sm text-gray-600"><?php echo e($schedule->lecturer->name ?? '-'); ?></td>
                         <td class="px-4 py-3 text-sm">
-                            @if($schedule->status === 'active')
+                            <?php if($schedule->status === 'active'): ?>
                                 <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-semibold">✓ Aktif</span>
-                            @else
+                            <?php else: ?>
                                 <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800 font-semibold">✗ Non-Aktif</span>
-                            @endif
+                            <?php endif; ?>
                         </td>
                         <!-- ✅ AKSI: Satu Baris, Tanpa Icon -->
                         <td class="px-4 py-3 text-sm">
                             <div class="flex items-center gap-3 whitespace-nowrap">
                                 <button type="button"
-                                        onclick="openDetailModal({{ json_encode($schedule) }})"
+                                        onclick="openDetailModal(<?php echo e(json_encode($schedule)); ?>)"
                                         class="text-blue-600 hover:text-blue-800 font-medium">
                                     Detail
                                 </button>
                                 <span class="text-gray-300">|</span>
-                                <a href="{{ route('admin.class-schedules.edit', $schedule) }}"
+                                <a href="<?php echo e(route('admin.class-schedules.edit', $schedule)); ?>"
                                    class="text-green-600 hover:text-green-800 font-medium">
                                     Edit
                                 </a>
                                 <span class="text-gray-300">|</span>
-                                <form action="{{ route('admin.class-schedules.destroy', $schedule) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('DELETE')
+                                <form action="<?php echo e(route('admin.class-schedules.destroy', $schedule)); ?>" method="POST" class="inline">
+                                    <?php echo csrf_field(); ?>
+                                    <?php echo method_field('DELETE'); ?>
                                     <button type="submit" onclick="return confirm('Hapus jadwal ini?')"
                                             class="text-red-600 hover:text-red-800 font-medium">
                                         Hapus
@@ -182,13 +182,13 @@
                             </div>
                         </td>
                     </tr>
-                    @empty
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <tr>
                         <td colspan="9" class="px-4 py-8 text-center text-gray-500">
-                            Belum ada jadwal kuliah. <a href="{{ route('admin.class-schedules.create') }}" class="text-blue-600 hover:underline">Tambahkan pertama</a>
+                            Belum ada jadwal kuliah. <a href="<?php echo e(route('admin.class-schedules.create')); ?>" class="text-blue-600 hover:underline">Tambahkan pertama</a>
                         </td>
                     </tr>
-                    @endforelse
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -196,7 +196,8 @@
         <!-- ✅ Pagination dengan White Theme -->
        <!-- ✅ Pagination dengan warna putih -->
         <div class="px-4 py-3 border-t border-gray-200 bg-white">
-            {{ $schedules->links('vendor.pagination.white') }}
+            <?php echo e($schedules->links('vendor.pagination.white')); ?>
+
         </div>
     </div>
 
@@ -272,7 +273,7 @@
 </div>
 
 <!-- ✅ CSS untuk White Pagination -->
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
     .pagination-white-custom nav[role="navigation"] span,
     .pagination-white-custom nav[role="navigation"] a {
@@ -309,11 +310,11 @@
         height: 1.25rem;
     }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 // ✅ Modal Functions
 function openDetailModal(schedule) {
@@ -381,7 +382,7 @@ function resetFilters() {
     if(statusFilter) statusFilter.value = '';
 
     // 2. Update URL to base route (remove query params)
-    const baseUrl = "{{ route('admin.class-schedules.index') }}";
+    const baseUrl = "<?php echo e(route('admin.class-schedules.index')); ?>";
     window.history.replaceState({}, '', baseUrl);
 
     // 3. ✅ Hide reset button container
@@ -418,13 +419,13 @@ function performAjaxSearch(forceReset = false) {
 
     // Update URL dengan params saat ini (kecuali force reset)
     if(!forceReset && params.toString()) {
-        const newUrl = "{{ route('admin.class-schedules.index') }}" + "?" + params.toString();
+        const newUrl = "<?php echo e(route('admin.class-schedules.index')); ?>" + "?" + params.toString();
         window.history.replaceState({}, '', newUrl);
     }
 
     params.append('ajax', '1');
 
-    const baseUrl = "{{ route('admin.class-schedules.index') }}";
+    const baseUrl = "<?php echo e(route('admin.class-schedules.index')); ?>";
     const url = baseUrl + (params.toString() ? "?" + params.toString() : "");
 
     fetch(url, {
@@ -498,4 +499,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH D:\project\laravel_project\sipinlab\resources\views/admin/class-schedules/index.blade.php ENDPATH**/ ?>

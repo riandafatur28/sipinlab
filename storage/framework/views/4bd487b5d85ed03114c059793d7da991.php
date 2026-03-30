@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<?php $__env->startSection('title', 'Kelola Laboratorium - Admin'); ?>
 
-@section('title', 'Kelola Laboratorium - Admin')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="max-w-7xl mx-auto">
 
     <!-- Header dengan Info Role -->
@@ -12,46 +10,47 @@
             <p class="text-gray-600">Manajemen data laboratorium</p>
         </div>
 
-        @if(Auth::user()->isKalab())
+        <?php if(Auth::user()->isKalab()): ?>
             <div class="px-4 py-2 bg-indigo-100 text-indigo-800 rounded-lg text-sm font-medium mr-4">
-                👔 Mode Kalab: {{ Auth::user()->lab_name ?? 'Semua Lab' }}
-            </div>
-        @endif
+                👔 Mode Kalab: <?php echo e(Auth::user()->lab_name ?? 'Semua Lab'); ?>
 
-        @if(Auth::user()->isAdmin())
-            <a href="{{ route('admin.labs.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+            </div>
+        <?php endif; ?>
+
+        <?php if(Auth::user()->isAdmin()): ?>
+            <a href="<?php echo e(route('admin.labs.create')); ?>" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
                 + Tambah Lab
             </a>
-        @endif
+        <?php endif; ?>
     </div>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <p class="text-sm text-gray-500">Total Laboratorium</p>
-            <p class="text-2xl font-bold text-blue-600">{{ $labs->total() }}</p>
+            <p class="text-2xl font-bold text-blue-600"><?php echo e($labs->total()); ?></p>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <p class="text-sm text-gray-500">Aktif</p>
-            <p class="text-2xl font-bold text-green-600">{{ $labs->filter(fn($l) => $l->status === 'active')->count() }}</p>
+            <p class="text-2xl font-bold text-green-600"><?php echo e($labs->filter(fn($l) => $l->status === 'active')->count()); ?></p>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <p class="text-sm text-gray-500">Non-Aktif</p>
-            <p class="text-2xl font-bold text-gray-600">{{ $labs->filter(fn($l) => $l->status === 'inactive')->count() }}</p>
+            <p class="text-2xl font-bold text-gray-600"><?php echo e($labs->filter(fn($l) => $l->status === 'inactive')->count()); ?></p>
         </div>
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <p class="text-sm text-gray-500">Total Kapasitas</p>
-            <p class="text-2xl font-bold text-purple-600">{{ $labs->sum('capacity') }}</p>
+            <p class="text-2xl font-bold text-purple-600"><?php echo e($labs->sum('capacity')); ?></p>
         </div>
     </div>
 
     <!-- ✅ Search & Filter dengan Reset Button -->
-    @if(Auth::user()->isAdmin())
+    <?php if(Auth::user()->isAdmin()): ?>
     <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
-        <form id="labSearchForm" method="GET" action="{{ route('admin.labs.index') }}" class="flex flex-wrap gap-4">
+        <form id="labSearchForm" method="GET" action="<?php echo e(route('admin.labs.index')); ?>" class="flex flex-wrap gap-4">
             <div class="flex-1 min-w-[200px] relative">
                 <input type="text" name="search" id="searchInput" placeholder="Cari nama/kode lab..."
-                       value="{{ request('search') }}"
+                       value="<?php echo e(request('search')); ?>"
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 pl-10"
                        autocomplete="off">
                 <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,8 +63,8 @@
 
             <select name="status" id="statusFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                 <option value="">Semua Status</option>
-                <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Aktif</option>
-                <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Non-Aktif</option>
+                <option value="active" <?php echo e(request('status') === 'active' ? 'selected' : ''); ?>>Aktif</option>
+                <option value="inactive" <?php echo e(request('status') === 'inactive' ? 'selected' : ''); ?>>Non-Aktif</option>
             </select>
 
             <!-- Hidden Submit Button for AJAX -->
@@ -73,18 +72,18 @@
         </form>
 
         <!-- ✅ Tombol Reset - DI KIRI, dengan ID untuk JS, hanya muncul saat filter aktif -->
-        @if(request()->anyFilled(['search', 'status']))
+        <?php if(request()->anyFilled(['search', 'status'])): ?>
         <div id="resetButtonContainer" class="mt-3 pt-3 border-t border-gray-200 flex items-center">
             <button type="button" onclick="resetFilters()"
                     class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
                 <span>🔄</span> Reset semua filter
             </button>
         </div>
-        @endif
+        <?php endif; ?>
 
         <p class="text-xs text-gray-400 mt-2 ml-1">💡 Ketik atau pilih filter untuk mencari otomatis...</p>
     </div>
-    @endif
+    <?php endif; ?>
 
     <!-- Lab List Table -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -101,56 +100,57 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200" id="labTableBody">
-                    @forelse($labs as $lab)
+                    <?php $__empty_1 = true; $__currentLoopData = $labs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $lab): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="px-6 py-4">
                             <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
-                                {{ $lab->code }}
+                                <?php echo e($lab->code); ?>
+
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            <div class="font-medium text-gray-900">{{ $lab->name }}</div>
-                            @if($lab->description)
-                                <div class="text-sm text-gray-500 truncate max-w-xs">{{ Str::limit($lab->description, 50) }}</div>
-                            @endif
+                            <div class="font-medium text-gray-900"><?php echo e($lab->name); ?></div>
+                            <?php if($lab->description): ?>
+                                <div class="text-sm text-gray-500 truncate max-w-xs"><?php echo e(Str::limit($lab->description, 50)); ?></div>
+                            <?php endif; ?>
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ $lab->location ?? '-' }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-600">{{ $lab->capacity }} orang</td>
+                        <td class="px-6 py-4 text-sm text-gray-600"><?php echo e($lab->location ?? '-'); ?></td>
+                        <td class="px-6 py-4 text-sm text-gray-600"><?php echo e($lab->capacity); ?> orang</td>
                         <td class="px-6 py-4">
-                            @if($lab->status === 'active')
+                            <?php if($lab->status === 'active'): ?>
                                 <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-semibold">✓ Aktif</span>
-                            @else
+                            <?php else: ?>
                                 <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800 font-semibold">✗ Non-Aktif</span>
-                            @endif
+                            <?php endif; ?>
                         </td>
                         <!-- ✅ AKSI: Satu Baris, Tanpa Icon -->
                         <td class="px-6 py-4 text-sm">
                             <div class="flex items-center gap-3 whitespace-nowrap">
                                 <button type="button"
-                                        onclick="openLabDetailModal({{ json_encode($lab) }})"
+                                        onclick="openLabDetailModal(<?php echo e(json_encode($lab)); ?>)"
                                         class="text-blue-600 hover:text-blue-800 font-medium">
                                     Detail
                                 </button>
                                 <span class="text-gray-300">|</span>
-                                <a href="{{ route('admin.labs.edit', $lab) }}"
+                                <a href="<?php echo e(route('admin.labs.edit', $lab)); ?>"
                                    class="text-green-600 hover:text-green-800 font-medium">
                                     Edit
                                 </a>
-                                @if(Auth::user()->isAdmin())
+                                <?php if(Auth::user()->isAdmin()): ?>
                                     <span class="text-gray-300">|</span>
-                                    <form action="{{ route('admin.labs.destroy', $lab) }}" method="POST" class="inline"
-                                          onsubmit="return confirm('Hapus laboratorium {{ $lab->name }}?')">
-                                        @csrf
-                                        @method('DELETE')
+                                    <form action="<?php echo e(route('admin.labs.destroy', $lab)); ?>" method="POST" class="inline"
+                                          onsubmit="return confirm('Hapus laboratorium <?php echo e($lab->name); ?>?')">
+                                        <?php echo csrf_field(); ?>
+                                        <?php echo method_field('DELETE'); ?>
                                         <button type="submit" class="text-red-600 hover:text-red-800 font-medium">
                                             Hapus
                                         </button>
                                     </form>
-                                @endif
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>
-                    @empty
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                     <tr>
                         <td colspan="6" class="px-6 py-12 text-center text-gray-500">
                             <div class="flex flex-col items-center gap-3">
@@ -158,25 +158,26 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                                 <p>Belum ada data laboratorium.</p>
-                                @if(Auth::user()->isAdmin())
-                                    <a href="{{ route('admin.labs.create') }}" class="text-blue-600 hover:underline font-medium">
+                                <?php if(Auth::user()->isAdmin()): ?>
+                                    <a href="<?php echo e(route('admin.labs.create')); ?>" class="text-blue-600 hover:underline font-medium">
                                         + Tambahkan laboratorium pertama
                                     </a>
-                                @endif
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>
-                    @endforelse
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
 
         <!-- ✅ Pagination dengan White Theme -->
-        @if($labs->hasPages())
+        <?php if($labs->hasPages()): ?>
         <div class="px-6 py-4 border-t border-gray-200 bg-white pagination-white-custom">
-            {{ $labs->appends(request()->query())->links() }}
+            <?php echo e($labs->appends(request()->query())->links()); ?>
+
         </div>
-        @endif
+        <?php endif; ?>
     </div>
 
 </div>
@@ -234,11 +235,11 @@
                     <button type="button" onclick="closeLabDetailModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
                         Tutup
                     </button>
-                    @if(Auth::user()->isAdmin() || Auth::user()->isKalab())
+                    <?php if(Auth::user()->isAdmin() || Auth::user()->isKalab()): ?>
                     <a href="#" id="modal-edit-link" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                         Edit Lab
                     </a>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -246,7 +247,7 @@
 </div>
 
 <!-- ✅ CSS untuk White Pagination -->
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
     .pagination-white-custom nav[role="navigation"] span,
     .pagination-white-custom nav[role="navigation"] a {
@@ -283,11 +284,11 @@
         height: 1.25rem;
     }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 // ✅ Simple Modal Functions
 function openLabDetailModal(lab) {
@@ -338,7 +339,7 @@ function resetFilters() {
     if(statusFilter) statusFilter.value = '';
 
     // 2. Update URL to base route (remove query params)
-    const baseUrl = "{{ route('admin.labs.index') }}";
+    const baseUrl = "<?php echo e(route('admin.labs.index')); ?>";
     window.history.replaceState({}, '', baseUrl);
 
     // 3. ✅ Hide reset button container
@@ -369,13 +370,13 @@ function performAjaxSearch(forceReset = false) {
 
     // Update URL dengan params saat ini (kecuali force reset)
     if(!forceReset && params.toString()) {
-        const newUrl = "{{ route('admin.labs.index') }}" + "?" + params.toString();
+        const newUrl = "<?php echo e(route('admin.labs.index')); ?>" + "?" + params.toString();
         window.history.replaceState({}, '', newUrl);
     }
 
     params.append('ajax', '1');
 
-    const baseUrl = "{{ route('admin.labs.index') }}";
+    const baseUrl = "<?php echo e(route('admin.labs.index')); ?>";
     const url = baseUrl + (params.toString() ? "?" + params.toString() : "");
 
     fetch(url, {
@@ -445,4 +446,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH D:\project\laravel_project\sipinlab\resources\views/admin/labs/index.blade.php ENDPATH**/ ?>
