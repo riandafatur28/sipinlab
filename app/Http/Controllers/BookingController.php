@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Lab;
 use App\Models\ClassSchedule;
 use App\Services\WhatsAppService;
+use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -16,10 +17,29 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class BookingController extends Controller
 {
     protected $whatsapp;
+    protected $telegram;
 
-    public function __construct(WhatsAppService $whatsapp)
+    public function __construct(WhatsAppService $whatsapp, TelegramService $telegram)
     {
-        $this->whatsapp = $whatsapp;
+        $this->whatsapp  = $whatsapp;
+        $this->telegram  = $telegram;
+    }
+
+    // =========================================================
+    // Helper: kirim notif Telegram ke user, fallback ke test ID
+    // =========================================================
+    private function telegramNotify($user, string $method, ...$args): void
+    {
+        $chatId = $user->telegram_chat_id ?? null;
+        if (!$chatId) return;
+
+        try {
+            $this->telegram->$method($chatId, ...$args);
+        } catch (\Exception $e) {
+            Log::warning("Telegram notify failed [{$method}]: " . $e->getMessage(), [
+                'user_id' => $user->id ?? null,
+            ]);
+        }
     }
 
     // ========================================================================
@@ -349,7 +369,9 @@ class BookingController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isAdmin() && !$user->isKalab() && $user->role !== 'ketua_lab') {
+        $isOwner = $booking->user_id === $user->id;
+        $isStaff = $user->isAdmin() || $user->isKalab() || $user->isTeknisi() || $user->role === 'ketua_lab';
+        if (!$isOwner && !$isStaff) {
             abort(403, 'Anda tidak berwenang mengunduh formulir');
         }
 
@@ -422,7 +444,7 @@ class BookingController extends Controller
             'kalab_name' => $user->name,
         ]);
 
-        // ✅ WhatsApp: Notify user that booking is confirmed
+        // ✅ Notify peminjam bahwa booking telah dikonfirmasi semua
         if ($booking->user->phone) {
             $this->whatsapp->sendApprovalNotification(
                 $booking->user->phone,
@@ -430,6 +452,7 @@ class BookingController extends Controller
                 '✅ DIKONFIRMASI - Silakan gunakan lab sesuai jadwal'
             );
         }
+        $this->telegramNotify($booking->user, 'notifyPeminjamConfirmed', $booking);
 
         return redirect()->route('booking.show', $booking)
             ->with('success', '🎉 Booking BERHASIL DIKONFIRMASI! Silakan gunakan lab sesuai jadwal.');
@@ -439,8 +462,8 @@ class BookingController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isDosen()) {
-            abort(403, 'Hanya dosen yang dapat menyetujui booking mahasiswa');
+        if (!$user->isDosen() && !$user->isAdmin()) {
+            abort(403, 'Hanya dosen atau admin yang dapat menyetujui booking mahasiswa');
         }
 
         if ($booking->status !== 'pending') {
@@ -458,13 +481,16 @@ class BookingController extends Controller
             'dosen_id' => $user->id,
         ]);
 
-        // ✅ WhatsApp: Notify teknisi untuk approval selanjutnya
+        // ✅ Notify teknisi untuk approval selanjutnya
         $teknisi = User::where('role', 'teknisi')
             ->where('lab_name', $booking->lab_name)
             ->first();
 
-        if ($teknisi && $teknisi->phone) {
-            $this->whatsapp->sendBookingNotification($teknisi->phone, $booking);
+        if ($teknisi) {
+            if ($teknisi->phone) {
+                $this->whatsapp->sendBookingNotification($teknisi->phone, $booking);
+            }
+            $this->telegramNotify($teknisi, 'notifyTeknisiBookingApproved', $booking);
         }
 
         return back()->with('success', '✅ Booking berhasil disetujui! Menunggu persetujuan teknisi.');
@@ -474,7 +500,7 @@ class BookingController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isTeknisi() || $user->lab_name !== $booking->lab_name) {
+        if (!$user->isAdmin() && (!$user->isTeknisi() || $user->lab_name !== $booking->lab_name)) {
             abort(403, 'Anda tidak berwenang menyetujui booking untuk laboratorium ini');
         }
 
@@ -494,14 +520,23 @@ class BookingController extends Controller
             'lab' => $booking->lab_name,
         ]);
 
-        // ✅ WhatsApp: Notify Kalab untuk approval final
+        // ✅ Notify Kalab untuk approval final — utamakan yang lab-nya sama
         $kalab = User::where(function($q) {
+                $q->where('is_kalab', true)
+                  ->orWhere('role', 'ketua_lab');
+            })
+            ->where('lab_name', $booking->lab_name)
+            ->first()
+            ?? User::where(function($q) {
                 $q->where('is_kalab', true)
                   ->orWhere('role', 'ketua_lab');
             })->first();
 
-        if ($kalab && $kalab->phone) {
-            $this->whatsapp->sendBookingNotification($kalab->phone, $booking);
+        if ($kalab) {
+            if ($kalab->phone) {
+                $this->whatsapp->sendBookingNotification($kalab->phone, $booking);
+            }
+            $this->telegramNotify($kalab, 'notifyKalabBookingApproved', $booking);
         }
 
         return back()->with('success', '✅ Booking berhasil disetujui! Menunggu persetujuan Ka Lab.');
@@ -516,7 +551,7 @@ class BookingController extends Controller
         $validated = $request->validate(['rejection_reason' => 'required|string|max:500']);
         $user = Auth::user();
 
-        if (!$user->canApproveBookings()) {
+        if (!$user->canApproveBookings() && !$user->isDosen()) {
             abort(403, 'Unauthorized');
         }
 
@@ -537,7 +572,7 @@ class BookingController extends Controller
             'reason' => $validated['rejection_reason'],
         ]);
 
-        // ✅ WhatsApp: Notify user that booking was rejected
+        // ✅ Notify peminjam bahwa booking ditolak
         if ($booking->user->phone) {
             $message = "*BOOKING DITOLAK*\n\n"
                 . "Lab: {$booking->lab_name}\n"
@@ -547,6 +582,7 @@ class BookingController extends Controller
 
             $this->whatsapp->send($booking->user->phone, $message);
         }
+        $this->telegramNotify($booking->user, 'notifyPeminjamRejected', $booking, $validated['rejection_reason']);
 
         return back()->with('success', '❌ Booking ditolak. Alasan: ' . $validated['rejection_reason']);
     }
@@ -724,15 +760,18 @@ class BookingController extends Controller
                 'status' => $status,
             ]);
 
-            // ✅ WHATSAPP NOTIFICATION FLOW
+            // ✅ NOTIFICATION FLOW (WhatsApp + Telegram)
             if ($isMahasiswa) {
                 // Mahasiswa booking → Notify Dosen pembimbing (jika ada) atau semua dosen
                 $supervisor = $booking->supervisor_id
                     ? User::find($booking->supervisor_id)
                     : User::where('role', 'dosen')->first();
 
-                if ($supervisor && $supervisor->phone) {
-                    $this->whatsapp->sendBookingNotification($supervisor->phone, $booking);
+                if ($supervisor) {
+                    if ($supervisor->phone) {
+                        $this->whatsapp->sendBookingNotification($supervisor->phone, $booking);
+                    }
+                    $this->telegramNotify($supervisor, 'notifyDosenNewBooking', $booking);
                 }
             } else {
                 // Dosen booking → Notify Teknisi lab terkait
@@ -740,8 +779,11 @@ class BookingController extends Controller
                     ->where('lab_name', $booking->lab_name)
                     ->first();
 
-                if ($teknisi && $teknisi->phone) {
-                    $this->whatsapp->sendBookingNotification($teknisi->phone, $booking);
+                if ($teknisi) {
+                    if ($teknisi->phone) {
+                        $this->whatsapp->sendBookingNotification($teknisi->phone, $booking);
+                    }
+                    $this->telegramNotify($teknisi, 'notifyTeknisiBookingApproved', $booking);
                 }
             }
 
@@ -1042,6 +1084,70 @@ class BookingController extends Controller
             return true;
         }
         return false;
+    }
+
+    // ========================================================================
+    // 📲 ADMIN: Kirim notifikasi Telegram manual
+    // ========================================================================
+    public function sendTelegramNotification(Request $request, Booking $booking)
+    {
+        $user = Auth::user();
+        if (!$user->isAdmin()) {
+            abort(403, 'Hanya admin yang dapat mengirim notifikasi manual');
+        }
+
+        $type = $request->input('type', 'status');
+        $sent = 0;
+
+        $recipients = collect();
+
+        // Selalu include peminjam
+        if ($booking->user && $booking->user->telegram_chat_id) {
+            $recipients->push(['user' => $booking->user, 'role' => 'peminjam']);
+        }
+
+        // Include teknisi lab terkait
+        $teknisi = User::where('role', 'teknisi')->where('lab_name', $booking->lab_name)->first();
+        if ($teknisi && $teknisi->telegram_chat_id) {
+            $recipients->push(['user' => $teknisi, 'role' => 'teknisi']);
+        }
+
+        // Include kalab
+        $kalab = User::where(function ($q) {
+            $q->where('is_kalab', true)->orWhere('role', 'ketua_lab');
+        })->first();
+        if ($kalab && $kalab->telegram_chat_id) {
+            $recipients->push(['user' => $kalab, 'role' => 'kalab']);
+        }
+
+        foreach ($recipients as $r) {
+            $chatId = $r['user']->telegram_chat_id;
+            $status = \App\Http\Controllers\BookingController::getStatusLabel($booking->status);
+
+            $message = "📋 <b>INFO BOOKING — SipinLab</b>\n\n"
+                . "Peminjam: <b>{$booking->user->name}</b>\n"
+                . "Lab: <b>{$booking->lab_name}</b>\n"
+                . "Tanggal: {$booking->booking_date}\n"
+                . "Waktu: {$booking->start_time} - {$booking->end_time}\n"
+                . "Status: <b>{$status}</b>\n\n"
+                . "Dikirim oleh Admin SipinLab.";
+
+            if ($this->telegram->sendMessage($chatId, $message)) {
+                $sent++;
+            }
+        }
+
+        Log::info('Admin sent Telegram notification', [
+            'admin_id' => $user->id,
+            'booking_id' => $booking->id,
+            'sent_count' => $sent,
+        ]);
+
+        if ($sent > 0) {
+            return back()->with('success', "✅ Notifikasi Telegram berhasil dikirim ke {$sent} pengguna.");
+        }
+
+        return back()->withErrors(['error' => '⚠️ Tidak ada penerima yang terhubung ke Telegram. Pastikan pengguna sudah daftar via @sipinlab_bot.']);
     }
 
     // ========================================================================

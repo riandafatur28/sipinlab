@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Lab;
 use App\Models\User;
+use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Validation\Rule;
@@ -14,6 +15,21 @@ use Illuminate\Support\Facades\Log;
 
 class ScheduleController extends Controller
 {
+    public function __construct(protected TelegramService $telegram) {}
+
+    private function telegramNotify($user, string $method, ...$args): void
+    {
+        $chatId = $user->telegram_chat_id ?? null;
+        if (!$chatId) return;
+        try {
+            $this->telegram->$method($chatId, ...$args);
+        } catch (\Exception $e) {
+            Log::warning("Telegram notify failed [{$method}]: " . $e->getMessage(), [
+                'user_id' => $user->id ?? null,
+            ]);
+        }
+    }
+
     /**
      * Display schedule management page (Admin/Kalab/Teknisi)
      */
@@ -177,6 +193,48 @@ class ScheduleController extends Controller
         }
 
         $booking->update($updateData);
+        $booking->refresh();
+
+        // ── Telegram Notifications ──────────────────────────────────────────
+        switch ($validated['status']) {
+            case 'approved_dosen':
+                // Notify teknisi lab yang bersangkutan
+                $teknisi = User::where('role', 'teknisi')
+                    ->where('lab_name', $booking->lab_name)
+                    ->first();
+                if ($teknisi) {
+                    $this->telegramNotify($teknisi, 'notifyTeknisiBookingApproved', $booking);
+                }
+                break;
+
+            case 'approved_teknisi':
+                // Notify kalab — utamakan yang lab-nya sama, fallback ke kalab manapun
+                $kalab = User::where(function ($q) {
+                        $q->where('is_kalab', true)->orWhere('role', 'ketua_lab');
+                    })->where('lab_name', $booking->lab_name)->first()
+                    ?? User::where(function ($q) {
+                        $q->where('is_kalab', true)->orWhere('role', 'ketua_lab');
+                    })->first();
+                if ($kalab) {
+                    $this->telegramNotify($kalab, 'notifyKalabBookingApproved', $booking);
+                }
+                break;
+
+            case 'confirmed':
+                // Notify peminjam bahwa booking sudah dikonfirmasi
+                $this->telegramNotify($booking->user, 'notifyPeminjamConfirmed', $booking);
+                break;
+
+            case 'rejected':
+                $reason = $validated['admin_note'] ?? $booking->rejection_reason ?? 'Ditolak oleh admin.';
+                $this->telegramNotify($booking->user, 'notifyPeminjamRejected', $booking, $reason);
+                break;
+
+            case 'cancelled':
+                $reason = $validated['admin_note'] ?? 'Dibatalkan oleh ' . ucfirst($user->role) . '.';
+                $this->telegramNotify($booking->user, 'notifyPeminjamRejected', $booking, $reason);
+                break;
+        }
 
         Log::info('Booking status updated', [
             'booking_id' => $booking->id,
@@ -212,11 +270,15 @@ class ScheduleController extends Controller
             return back()->with('error', '❌ Booking ini sudah dibatalkan/ditolak sebelumnya.');
         }
 
+        $reason = 'Dibatalkan oleh ' . ($user->role === 'kalab' ? 'Kalab' : ($user->role === 'admin' ? 'Admin' : 'Unknown'));
+
         $booking->update([
             'status' => 'cancelled',
             'rejected_at' => now(),
-            'rejection_reason' => 'Dibatalkan oleh ' . ($user->role === 'kalab' ? 'Kalab' : ($user->role === 'admin' ? 'Admin' : 'Unknown')),
+            'rejection_reason' => $reason,
         ]);
+
+        $this->telegramNotify($booking->user, 'notifyPeminjamRejected', $booking, $reason);
 
         Log::info('Booking cancelled', [
             'booking_id' => $booking->id,

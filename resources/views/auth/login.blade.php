@@ -35,14 +35,46 @@
         <form method="POST" action="{{ route('login') }}" class="space-y-6 bg-white p-8 rounded-2xl shadow-xl">
             @csrf
 
+            {{-- SUKSES: setelah reset password berhasil --}}
+            @if(session('status'))
+            <div class="bg-green-50 border border-green-300 rounded-xl px-4 py-3 flex items-start gap-3">
+                <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-sm text-green-800 font-medium">{{ session('status') }}</p>
+            </div>
+            @endif
+
+            {{-- WARNING: sesi berakhir (419) --}}
+            @if(session('error'))
+            <div class="bg-yellow-50 border border-yellow-300 rounded-xl px-4 py-3 flex items-start gap-3">
+                <svg class="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+                <p class="text-sm text-yellow-800 font-medium">{{ session('error') }}</p>
+            </div>
+            @endif
+
+            {{-- ERROR: email/password salah --}}
+            @if($errors->any())
+            <div class="bg-red-50 border border-red-300 rounded-xl px-4 py-3 flex items-start gap-3">
+                <svg class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+                <p class="text-sm text-red-700 font-medium">{{ $errors->first() }}</p>
+            </div>
+            @endif
+
             <!-- EMAIL -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
                 <input type="email"
                        name="email"
+                       value="{{ old('email') }}"
                        placeholder="email@polije.ac.id"
                        required
-                       class="w-full px-4 py-3 bg-gray-100 border-2 border-transparent rounded-full focus:outline-none focus:border-blue-500 focus:bg-white">
+                       autofocus
+                       class="w-full px-4 py-3 bg-gray-100 border-2 {{ $errors->has('email') ? 'border-red-400 bg-red-50' : 'border-transparent' }} rounded-full focus:outline-none focus:border-blue-500 focus:bg-white transition-colors">
             </div>
 
             <!-- PASSWORD + TOGGLE -->
@@ -53,7 +85,7 @@
                        id="password"
                        name="password"
                        required
-                       class="w-full px-4 py-3 pr-12 bg-gray-100 border-2 border-transparent rounded-full focus:outline-none focus:border-blue-500 focus:bg-white">
+                       class="w-full px-4 py-3 pr-12 bg-gray-100 border-2 {{ $errors->has('email') ? 'border-red-400 bg-red-50' : 'border-transparent' }} rounded-full focus:outline-none focus:border-blue-500 focus:bg-white transition-colors">
 
                 <!-- BUTTON TOGGLE -->
                 <button type="button"

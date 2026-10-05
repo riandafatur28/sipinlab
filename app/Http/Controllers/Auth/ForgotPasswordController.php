@@ -4,11 +4,10 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\GmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\OtpMail;
 use Illuminate\Validation\Rules;
 
 class ForgotPasswordController extends Controller
@@ -65,31 +64,29 @@ class ForgotPasswordController extends Controller
 
         $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        try {
-            Mail::to($user->email)->send(new OtpMail($otp, 5, $user->name));
-            Log::info('OTP email sent successfully', ['email' => $user->email, 'domain' => $domain]);
-        } catch (\Exception $e) {
-            Log::error('Failed to send OTP email', ['email' => $user->email, 'error' => $e->getMessage()]);
-
-            if (app()->environment('local', 'development')) {
-                session(['debug_otp' => $otp]);
-                return redirect()->route('password.verify')
-                    ->with('status', 'Development Mode - OTP: ' . $otp);
-            }
-
-            return back()->withErrors(['username' => 'Gagal mengirim email. Silakan coba lagi atau hubungi admin.']);
-        }
-
+        // Set session dulu sebelum kirim email, agar middleware verify tidak gagal
         session([
-            'reset_otp' => hash('sha256', $otp),
+            'reset_otp'      => hash('sha256', $otp),
             'reset_otp_plain' => $otp,
-            'reset_email' => $user->email,
+            'reset_email'    => $user->email,
             'reset_otp_time' => now(),
             'reset_attempts' => 0,
         ]);
 
+        $gmail = app(GmailService::class);
+        $html  = $this->buildOtpEmail($otp, $user->name);
+
+        $sent = $gmail->send($user->email, $user->name, '[SipinLab] Kode OTP Reset Password', $html);
+
+        if (!$sent) {
+            Log::error('Failed to send OTP email via Gmail API', ['email' => $user->email]);
+            return back()->withErrors(['username' => 'Gagal mengirim email. Periksa konfigurasi Gmail API.']);
+        }
+
+        Log::info('OTP email sent via Gmail API', ['email' => $user->email]);
+
         return redirect()->route('password.verify')
-            ->with('status', 'Kode OTP telah dikirim ke email ' . $domain . ' Anda.');
+            ->with('status', 'Kode OTP telah dikirim ke email ' . $user->email . '. Cek inbox kamu.');
     }
 
     public function showVerifyForm()
@@ -159,11 +156,7 @@ class ForgotPasswordController extends Controller
             'password' => [
                 'required',
                 'confirmed',
-                Rules\Password::defaults()
-                    ->min(8)
-                    ->mixedCase()
-                    ->numbers()
-                    ->symbols(),
+                Rules\Password::min(8),
             ],
         ]);
 
@@ -217,28 +210,41 @@ class ForgotPasswordController extends Controller
 
         $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        try {
-            Mail::to($user->email)->send(new OtpMail($otp, 5, $user->name));
-            Log::info('OTP email resent successfully', ['email' => $email, 'domain' => $domain]);
-        } catch (\Exception $e) {
-            Log::error('Failed to resend OTP email', ['email' => $email, 'error' => $e->getMessage()]);
-
-            if (app()->environment('local', 'development')) {
-                session(['debug_otp' => $otp]);
-                return response()->json(['status' => true, 'message' => 'Development Mode - OTP baru: ' . $otp]);
-            }
-
-            return response()->json(['status' => false, 'message' => 'Gagal mengirim email.']);
-        }
-
         session([
-            'reset_otp' => hash('sha256', $otp),
-            'reset_otp_plain' => $otp,
-            'reset_otp_time' => now(),
+            'reset_otp'        => hash('sha256', $otp),
+            'reset_otp_plain'  => $otp,
+            'reset_otp_time'   => now(),
             'reset_last_resend' => now(),
-            'reset_attempts' => 0,
+            'reset_attempts'   => 0,
         ]);
 
+        $gmail = app(GmailService::class);
+        $html  = $this->buildOtpEmail($otp, $user->name);
+        $sent  = $gmail->send($user->email, $user->name, '[SipinLab] Kode OTP Reset Password', $html);
+
+        if (!$sent) {
+            Log::error('Failed to resend OTP via Gmail API', ['email' => $email]);
+            return response()->json(['status' => false, 'message' => 'Gagal mengirim email. Coba lagi.']);
+        }
+
+        Log::info('OTP email resent via Gmail API', ['email' => $email]);
         return response()->json(['status' => true, 'message' => 'Kode OTP baru telah dikirim ke email Anda.']);
+    }
+
+    private function buildOtpEmail(string $otp, string $name): string
+    {
+        return "
+        <div style='font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px'>
+            <h2 style='color:#1e40af;margin-bottom:8px'>🔐 Reset Password SipinLab</h2>
+            <p style='color:#374151'>Halo <strong>{$name}</strong>,</p>
+            <p style='color:#374151'>Gunakan kode OTP berikut untuk mereset password kamu:</p>
+            <div style='background:#eff6ff;border:2px dashed #3b82f6;border-radius:8px;padding:20px;text-align:center;margin:20px 0'>
+                <span style='font-size:36px;font-weight:bold;letter-spacing:12px;color:#1d4ed8'>{$otp}</span>
+            </div>
+            <p style='color:#6b7280;font-size:13px'>⏱️ Kode berlaku <strong>5 menit</strong> dan hanya bisa digunakan sekali.</p>
+            <p style='color:#6b7280;font-size:13px'>Jika kamu tidak meminta reset password, abaikan email ini.</p>
+            <hr style='border:none;border-top:1px solid #e2e8f0;margin:20px 0'>
+            <p style='color:#9ca3af;font-size:12px;text-align:center'>SipinLab — Sistem Peminjaman Laboratorium<br>Politeknik Negeri Jember</p>
+        </div>";
     }
 }

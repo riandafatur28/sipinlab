@@ -17,14 +17,8 @@ class RedirectIfAuthenticated
      */
     public function handle(Request $request, Closure $next, string ...$guards): Response
     {
-        $guards = empty($guards) ? [null] : $guards;
-
-        foreach ($guards as $guard) {
-            if (Auth::guard($guard)->check()) {
-                return redirect(RouteServiceProvider::HOME);
-            }
-        }
-
+        // Biarkan LoginController yang menangani logout jika user sudah login
+        // Middleware ini tidak digunakan karena route login tidak pakai middleware 'guest'
         return $next($request);
     }
 }

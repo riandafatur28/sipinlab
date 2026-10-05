@@ -15,11 +15,6 @@ class LoginController extends Controller
      */
     public function showLoginForm()
     {
-        // Jika sudah login, redirect ke dashboard sesuai role
-        if (Auth::check()) {
-            return redirect()->intended($this->getRedirectPath(Auth::user()));
-        }
-
         return view('auth.login');
     }
 
@@ -33,13 +28,21 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        // Logout sesi lama jika ada sebelum mencoba login baru
+        if (Auth::check()) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
+        if (Auth::attempt($credentials, false)) {
             $request->session()->regenerate();
+
             $user = Auth::user();
 
-            // ✅ SET DEFAULT VIEW MODE UNTUK KALAB
+            // Reset view mode ke default setiap login baru
             if ($user->isKalab()) {
-                session(['dashboard_view_mode' => 'kalab']);
+                session(['dashboard_view_mode' => 'schedule']);
             } else {
                 session()->forget('dashboard_view_mode');
             }
@@ -51,11 +54,10 @@ class LoginController extends Controller
                 'role' => $user->role,
                 'is_kalab' => $user->is_kalab ?? false,
                 'is_kalab_method' => $user->isKalab(),
-                'view_mode' => session('dashboard_view_mode'),
                 'ip_address' => $request->ip(),
             ]);
 
-            return redirect()->intended($this->getRedirectPath($user));
+            return redirect($this->getRedirectPath($user));
         }
 
         Log::warning('Login attempt failed', [

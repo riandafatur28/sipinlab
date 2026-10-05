@@ -97,6 +97,42 @@
                     @enderror
                 </div>
 
+                <!-- Telegram Chat ID -->
+                <div>
+                    <label for="telegram_chat_id" class="block text-sm font-medium text-gray-700 mb-1">
+                        Telegram Chat ID
+                    </label>
+                    @if($user->telegram_chat_id)
+                        <div class="flex gap-2">
+                            <input type="text" value="{{ $user->telegram_chat_id }}" disabled
+                                   class="flex-1 px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg text-gray-500 cursor-not-allowed font-mono text-sm">
+                            <input type="hidden" name="telegram_action" value="">
+                            <button type="button" onclick="confirmUnlinkTelegram()"
+                                    class="px-3 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 text-sm font-medium transition-colors">
+                                Putuskan
+                            </button>
+                        </div>
+                        <p class="mt-1 text-xs text-green-600">✅ Telegram terhubung — notifikasi aktif</p>
+                    @else
+                        <input type="text" name="telegram_chat_id" id="telegram_chat_id"
+                               value="{{ old('telegram_chat_id') }}"
+                               placeholder="Contoh: 123456789"
+                               class="w-full px-3 py-2 border @error('telegram_chat_id') border-red-500 @else border-gray-300 @enderror rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm">
+                        <p class="mt-1 text-xs text-gray-500">
+                            Belum tahu Chat ID kamu?
+                            <a href="https://t.me/userinfobot" target="_blank"
+                               class="text-blue-600 hover:underline font-medium">
+                                Buka @userinfobot di Telegram
+                            </a>
+                            → klik Start → salin angka <strong>Id</strong> yang muncul → tempel di sini.
+                        </p>
+                        <input type="hidden" name="telegram_action" value="">
+                    @endif
+                    @error('telegram_chat_id')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <!-- Role (Read-only) -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
@@ -175,4 +211,15 @@
     </div>
 
 </div>
+@push('scripts')
+<script>
+function confirmUnlinkTelegram() {
+    if (confirm('Putuskan akun Telegram? Anda tidak akan menerima notifikasi lagi sampai dihubungkan kembali.')) {
+        document.querySelector('input[name="telegram_action"]').value = 'unlink';
+        document.querySelector('form[action="{{ route('profile.update') }}"]').submit();
+    }
+}
+</script>
+@endpush
+
 @endsection

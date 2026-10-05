@@ -74,7 +74,7 @@ class DashboardController extends Controller
     public function mahasiswa()
     {
         if (!Auth::user()->isMahasiswa()) {
-            abort(403, 'Unauthorized');
+            return redirect()->route('dashboard');
         }
 
         $selectedDate = request('date');
@@ -90,7 +90,7 @@ class DashboardController extends Controller
         $allowedRoles = ['dosen', 'ketua_lab', 'teknisi', 'staff', 'admin'];
 
         if (!in_array($user->role, $allowedRoles) && !$user->isKalab()) {
-            abort(403, 'Unauthorized');
+            return redirect()->route('dashboard');
         }
 
         // ✅ Detect view mode untuk Kalab

@@ -45,6 +45,8 @@ class ProfileController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
             'bio' => ['nullable', 'string', 'max:500'],
+            'telegram_action' => ['nullable', 'string', 'in:unlink'],
+            'telegram_chat_id' => ['nullable', 'string', 'max:30', 'regex:/^\d+$/'],
 
             // Password validation (hanya jika user ingin mengubah)
             'current_password' => ['nullable', 'required_with:password', 'current_password'],
@@ -53,6 +55,7 @@ class ProfileController extends Controller
             'current_password.required_with' => 'Password saat ini wajib diisi untuk mengubah password.',
             'current_password.current_password' => 'Password saat ini tidak sesuai.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
+            'telegram_chat_id.regex' => 'Chat ID hanya boleh berisi angka.',
         ]);
 
         // ✅ Siapkan data untuk update (field yang boleh diedit user)
@@ -68,6 +71,13 @@ class ProfileController extends Controller
             $updateData['bio'] = $validated['bio'];
         }
 
+        // Handle Telegram Chat ID
+        if (($validated['telegram_action'] ?? '') === 'unlink') {
+            $updateData['telegram_chat_id'] = null;
+        } elseif (!empty($validated['telegram_chat_id'])) {
+            $updateData['telegram_chat_id'] = $validated['telegram_chat_id'];
+        }
+
         // ✅ Update profil
         $user->update($updateData);
 
@@ -78,9 +88,17 @@ class ProfileController extends Controller
             ]);
         }
 
+        if (($validated['telegram_action'] ?? '') === 'unlink') {
+            $successMsg = '✅ Akun Telegram berhasil diputuskan.';
+        } elseif (!empty($validated['telegram_chat_id'])) {
+            $successMsg = '✅ Telegram Chat ID berhasil disimpan! Notifikasi Telegram sekarang aktif.';
+        } else {
+            $successMsg = '✅ Profil berhasil diperbarui!';
+        }
+
         // ✅ Redirect dengan success message
         return redirect()->route('profile.show')
-            ->with('success', '✅ Profil berhasil diperbarui!');
+            ->with('success', $successMsg);
     }
 
     /**

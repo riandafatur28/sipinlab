@@ -1,66 +1,180 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+<p align="center"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="220" alt="Laravel"></p>
+
+<h1 align="center">SipinLab</h1>
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <strong>Sistem Peminjaman Laboratorium — Politeknik Negeri Jember</strong><br>
+  Booking lab online, alur persetujuan berjenjang, jadwal publik, notifikasi Telegram.
 </p>
 
-## About Laravel
+<p align="center">
+  <img src="https://img.shields.io/badge/Laravel-10-FF2D20?style=flat-square&logo=laravel&logoColor=white" alt="Laravel 10">
+  <img src="https://img.shields.io/badge/PHP-8.1%2B-777BB4?style=flat-square&logo=php&logoColor=white" alt="PHP 8.1+">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS 3">
+  <img src="https://img.shields.io/badge/Alpine.js-3-8CC0D4?style=flat-square&logo=alpinedotjs&logoColor=black" alt="Alpine.js 3">
+  <img src="https://img.shields.io/badge/Vite-5-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite 5">
+  <img src="https://img.shields.io/badge/MySQL-8-4479A1?style=flat-square&logo=mysql&logoColor=white" alt="MySQL 8">
+  <img src="https://img.shields.io/badge/Bot-Telegram-26A5E4?style=flat-square&logo=telegram&logoColor=white" alt="Telegram Bot">
+</p>
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📌 Tentang
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+**SipinLab** adalah aplikasi web untuk mengelola peminjaman laboratorium di lingkungan Politeknik Negeri Jember. Mahasiswa mengajukan peminjaman, pengajuan melewati alur persetujuan berjenjang (**dosen → teknisi → ketua lab**), dan setiap perubahan status dikirim notifikasi lewat bot Telegram. Halaman jadwal lab dapat diakses publik tanpa login.
 
-## Learning Laravel
+## ✨ Fitur
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 🔓 Publik (tanpa login)
+- **Jadwal lab publik** — landing page `/` & `/jadwal` menampilkan jadwal kelas dan peminjaman aktif.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### 🎓 Mahasiswa
+- Ajukan peminjaman lab (individu / kelompok)
+- Pantau status pengajuan (pending, approved, rejected)
+- Cetak / unduh **formulir peminjaman PDF** (DomPDF) setelah disetujui
+- Reset password via **OTP** (email)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 👨‍🏫 Dosen & Staff
+- Setujui / tolak pengajuan sesuai peran
+- Lihat statistik peminjaman per lab
 
-## Laravel Sponsors
+### 🔧 Teknisi & Ketua Lab
+- Persetujuan tahap kedua (teknisi) dan tahap akhir (ketua lab / kalab)
+- Kelola jadwal kelas per lab
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### ⚙️ Admin
+- Manajemen user (mahasiswa, dosen, teknisi, kalab, admin)
+- Manajemen lab & jadwal kelas
+- Monitoring seluruh peminjaman dengan filter & pencarian
 
-### Premium Partners
+## 🔄 Alur Persetujuan Peminjaman
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+```
+pending ──► approved_dosen ──► approved_teknisi ──► confirmed
+    │              │                   │                  │
+    └──────────────┴───────────────────┴──── rejected ────┘
+```
 
-## Contributing
+| Status | Menunggu persetujuan |
+|---|---|
+| `pending` | Dosen |
+| `approved_dosen` | Teknisi |
+| `approved_teknisi` | Ketua Lab (Kalab) |
+| `confirmed` | Selesai — form PDF dapat diunduh |
+| `rejected` / `cancelled` | Ditolak / dibatalkan |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 🤖 Integrasi
 
-## Code of Conduct
+- **Telegram Bot** — webhook (`/telegram/webhook`) untuk daftar akun (`/daftar`), cek status peminjaman (`/status`), dan bantuan (`/bantuan`). Notifikasi otomatis ke `telegram_chat_id` user. Setup via artisan: `php artisan telegram:set-webhook {url}`.
+- **WhatsApp & Gmail Service** — notifikasi multi-kanal (fallback aman jika gagal).
+- **Google OAuth** — field akun Google siap di database (Laravel Socialite terpasang).
+- **DomPDF** — ekspor form peminjaman resmi.
+- **OTP Password Reset** — verifikasi kode sebelum reset password.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 🛠 Tech Stack
 
-## Security Vulnerabilities
+| Layer | Teknologi |
+|---|---|
+| Backend | Laravel 10, PHP 8.1+, Sanctum |
+| Frontend | Blade, Tailwind CSS 3, Alpine.js, Vite 5 |
+| Database | MySQL 8 |
+| Notifikasi | Telegram Bot API, WhatsApp, Gmail (Resend) |
+| Ekspor | barryvdh/laravel-dompdf |
+| Dev tooling | Laragon, Cloudflare Tunnel (`.start.bat`), Laravel Pint |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 📂 Struktur Project
 
-## License
+```
+sipinlab1/
+├── app/
+│   ├── Http/Controllers/
+│   │   ├── Admin/          # UserManagement, LabManagement, Schedule, ClassSchedule
+│   │   ├── Auth/           # Login, OTP reset password
+│   │   ├── BookingController.php
+│   │   ├── DashboardController.php
+│   │   └── TelegramWebhookController.php
+│   ├── Models/             # User, Booking, Lab, ClassSchedule
+│   ├── Services/           # TelegramService, WhatsAppService, GmailService
+│   └── Console/Commands/   # SetTelegramWebhook, SendLabReminders
+├── database/
+│   ├── migrations/
+│   └── seeders/            # Admin, Mahasiswa, TechnicianLab
+├── resources/views/        # admin, booking, dashboard, public, emails
+└── routes/web.php
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 🚀 Instalasi
+
+### Prasyarat
+- PHP 8.1+ (ekstensi: openssl, pdo_mysql, mbstring, bcmath, gd)
+- Composer
+- Node.js 18+ & npm
+- MySQL 8
+- (Opsional) cloudflared untuk Telegram webhook publik
+
+### Langkah
+
+```bash
+# 1. Clone & dependensi
+git clone https://github.com/DazaiSan20/sipinlab1.git
+cd sipinlab1
+composer install
+npm install
+
+# 2. Konfigurasi environment
+cp .env.example .env
+php artisan key:generate
+# Edit .env: DB_DATABASE, DB_USERNAME, DB_PASSWORD
+# TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET (opsional)
+
+# 3. Database
+php artisan migrate --seed
+
+# 4. Build aset
+npm run build
+
+# 5. Jalankan
+php artisan serve
+```
+
+### Telegram Webhook
+
+```bash
+php artisan telegram:set-webhook https://<url-public-kamu>
+```
+
+Untuk development lokal, gunakan Cloudflare Tunnel:
+
+```bash
+cloudflared tunnel --url http://localhost:8000
+```
+
+> Windows: jalankan `start.bat` — script otomatis start `artisan serve` + cloudflared dan membersihkan cache Laravel.
+
+## 👤 Akun Demo (dari seeder)
+
+| Peran | Email | Password |
+|---|---|---|
+| Admin | `admin@polije.ac.id` | `AdminPolije123!` |
+
+> Seeder lain membuat akun mahasiswa & teknisi lab — cek `database/seeders/`.
+
+## 🔐 Role-Based Access
+
+| Role | Kemampuan |
+|---|---|
+| `mahasiswa` | Ajukan & pantau peminjaman |
+| `dosen` | Persetujuan tahap 1 |
+| `teknisi` | Persetujuan tahap 2 |
+| `ketua_lab` / kalab | Persetujuan akhir |
+| `admin` | Full akses manajemen |
+
+Akses dilindungi middleware `auth` + `prevent-back`, dengan redirect dashboard otomatis berdasarkan role.
+
+## 📄 License
+
+MIT — bebas dipakai & dimodifikasi.
+
+---
+
+Dibangun untuk kebutuhan pengelolaan laboratorium Politeknik Negeri Jember. Kontribusi & masukan sangat terbuka melalui issue / pull request.

@@ -25,6 +25,9 @@
             <p class="text-gray-600">Masukkan kode OTP yang telah dikirim ke email Anda</p>
         </div>
 
+        <!-- Notifikasi inline (sukses/gagal resend OTP) -->
+        <div id="notif-box" class="hidden rounded-xl p-4 mb-4 flex items-center gap-3 text-sm font-medium"></div>
+
         <!-- Info Box -->
         <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
             <div class="flex items-start">
@@ -278,29 +281,31 @@
                 const result = await response.json();
 
                 if (result.status) {
-                    // Reset timer
                     startTimer();
-
-                    // Clear inputs
-                    document.querySelectorAll('.otp-input').forEach(input => {
-                        input.value = '';
-                    });
+                    document.querySelectorAll('.otp-input').forEach(input => input.value = '');
                     document.querySelector('.otp-input').focus();
-
-                    // Show success message
-                    alert(result.message || 'Kode OTP baru telah dikirim ke email Anda');
+                    showNotif('success', result.message || 'Kode OTP baru telah dikirim ke email Anda.');
                 } else {
-                    alert(result.message || 'Gagal mengirim ulang OTP. Silakan coba lagi.');
+                    showNotif('error', result.message || 'Gagal mengirim ulang OTP. Silakan coba lagi.');
                     resendButton.disabled = false;
                 }
 
             } catch (error) {
                 console.error('Resend error:', error);
-                alert('Terjadi kesalahan. Silakan coba lagi.');
+                showNotif('error', 'Terjadi kesalahan. Silakan coba lagi.');
                 resendButton.disabled = false;
             }
 
             resendButton.textContent = originalText;
+        }
+
+        function showNotif(type, message) {
+            const box = document.getElementById('notif-box');
+            const isSuccess = type === 'success';
+            box.className = `rounded-xl p-4 mb-4 flex items-center gap-3 text-sm font-medium ${isSuccess ? 'bg-green-50 border border-green-300 text-green-800' : 'bg-red-50 border border-red-300 text-red-800'}`;
+            box.innerHTML = `<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${isSuccess ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'}"/></svg><span>${message}</span>`;
+            box.classList.remove('hidden');
+            setTimeout(() => box.classList.add('hidden'), 5000);
         }
 
         // Start timer on page load

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\TelegramWebhookController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\AdminController;
@@ -19,6 +20,13 @@ use App\Http\Controllers\BookingController;
 */
 
 // ============================================================================
+// 🤖 TELEGRAM WEBHOOK (No Auth, No CSRF)
+// ============================================================================
+Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle'])
+    ->name('telegram.webhook')
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+
+// ============================================================================
 // ✅ ROOT ROUTE: Public Schedule (Landing Page - No Login Required)
 // ============================================================================
 Route::get('/', [DashboardController::class, 'publicSchedule'])->name('home');
@@ -31,21 +39,19 @@ Route::get('/jadwal', [DashboardController::class, 'publicSchedule'])->name('pub
 // ============================================================================
 // GUEST ROUTES (Belum Login)
 // ============================================================================
-Route::middleware('guest')->group(function () {
-    // Auth
-    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
+// Login: tanpa middleware guest, dihandle langsung di controller
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
 
-    // Password Reset
-    Route::prefix('password')->group(function () {
-        Route::get('/forgot', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
-        Route::post('/forgot', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
-        Route::get('/verify-otp', [ForgotPasswordController::class, 'showVerifyForm'])->name('password.verify');
-        Route::post('/verify-otp', [ForgotPasswordController::class, 'verify'])->name('password.verify.post');
-        Route::get('/reset', [ForgotPasswordController::class, 'showResetForm'])->name('password.reset');
-        Route::post('/reset', [ForgotPasswordController::class, 'reset'])->name('password.update');
-        Route::post('/resend-otp', [ForgotPasswordController::class, 'resendOtp'])->name('password.resend');
-    });
+// Password Reset (tetap guest-only)
+Route::middleware('guest')->prefix('password')->group(function () {
+    Route::get('/forgot', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/forgot', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::get('/verify-otp', [ForgotPasswordController::class, 'showVerifyForm'])->name('password.verify');
+    Route::post('/verify-otp', [ForgotPasswordController::class, 'verify'])->name('password.verify.post');
+    Route::get('/reset', [ForgotPasswordController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset', [ForgotPasswordController::class, 'reset'])->name('password.update');
+    Route::post('/resend-otp', [ForgotPasswordController::class, 'resendOtp'])->name('password.resend');
 });
 
 // ============================================================================
@@ -118,6 +124,7 @@ Route::middleware('auth')->group(function () {
             // Actions
             Route::post('/{booking}/reject', [BookingController::class, 'reject'])->name('reject');
             Route::post('/{booking}/cancel', [BookingController::class, 'cancel'])->name('cancel');
+            Route::post('/{booking}/telegram-notify', [BookingController::class, 'sendTelegramNotification'])->name('telegram-notify');
             Route::delete('/{booking}', [BookingController::class, 'destroy'])->name('destroy');
         });
 

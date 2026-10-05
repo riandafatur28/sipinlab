@@ -257,8 +257,8 @@ function toggleRoleFields() {
         nimInput.placeholder = 'Contoh: 198001012020121001';
         nimInput.required = false;
 
+        nipHidden.name = 'nip';
         nimHidden.name = '';
-        nipHidden.name = '';
     }
 
     // Uncheck kalab jika role bukan dosen
@@ -274,16 +274,24 @@ function generateEmail() {
     const nimNip = document.getElementById('nimNip').value.trim();
     const emailInput = document.getElementById('email');
     const passwordPreview = document.getElementById('passwordPreview');
+    const nimHidden = document.getElementById('nimHidden');
+    const nipHidden = document.getElementById('nipHidden');
 
     if (nimNip.length > 0) {
         if (role === 'mahasiswa') {
             emailInput.value = nimNip.toLowerCase() + '@student.polije.ac.id';
+            nimHidden.value = nimNip;
+            nipHidden.value = '';
         } else {
             emailInput.value = nimNip.toLowerCase() + '@polije.ac.id';
+            nipHidden.value = nimNip;
+            nimHidden.value = '';
         }
         passwordPreview.textContent = nimNip;
     } else {
         emailInput.value = '';
+        nimHidden.value = '';
+        nipHidden.value = '';
         passwordPreview.textContent = '[NIM/NIP]';
     }
 }
